@@ -1,0 +1,34 @@
+{
+  "datasets": ["cifar10", "imagenet"],
+  "attacks":
+  [
+    {
+      "a_name": "fmn",
+      "norms": [0,1,2,null],
+      "a_datasets": [
+        {
+          "d_name": "cifar10",
+          "ad_models": [
+            {
+              "m_names": ["Gowal2021Improving_R18_ddpm_100m", "Rade2021Helper_R18_extra"],
+              "norms": [
+                {
+                  "p": 0,
+                  "hyperparameters": [
+                    {
+                      "alpha_init": 1.0,
+                      "alpha_final": null,
+                      "gamma_init": 0.05,
+                      "gamma_final": 0.001,
+                      "binary_search_steps": 10
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
