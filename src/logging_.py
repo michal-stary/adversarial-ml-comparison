@@ -1,7 +1,7 @@
 from collections import defaultdict
 import torch
 import matplotlib.pyplot as plt
-import json
+import pickle
 import os
 
 class Logger:
@@ -69,41 +69,45 @@ class Logger:
         except AttributeError:
             return self.curr_dict[attr]
 
-    def save(self, dir="logs", attack=None, model=None, hyperparams_str=None):
+    def save(self, attack=None, model=None, hyperparams_str=None, force=False, dir="logs"):
         # use default
         if attack is None:
             attack = self.attack_name
             model = self.model_name
             hyperparams_str =self.hyperparams_str
 
-        # create json object from dictionary
-        json_ = json.dumps(self.dict[attack][model][hyperparams_str])
+        path = f"{dir}/{attack}-{model}-{hyperparams_str}"
 
-        # open file for writing, "w"
-        with open(f"{dir}/{attack}-{model}-{hyperparams_str}.json", "w") as fo:
-            # write json object to file
-            fo.write(json_)
+        if not force and os.path.exists(path):
+            raise RuntimeWarning(attack, model, hyperparams_str)
 
-    def save_all(self):
+        with open(path, "wb") as fo:
+            pickle.dump(self.dict[attack][model][hyperparams_str], fo)
+
+    def save_all(self, force=False, dir="logs"):
         for attack in self.dict:
             for model in self.dict[attack]:
                 for hyperparams_str in self.dict[attack][model]:
-                    self.save(attack,model, hyperparams_str)
+                    try:
+                        self.save(attack,model, hyperparams_str,force, dir)
+                    except RuntimeWarning as e:
+                        attack, model, hyperparams_str = e.args
+                        print(f"Log of {attack}-{model}-{hyperparams_str} already saved ... skipping")
 
-    def load(self, attack, model, hyperparams_str, dir="logs"):
+    def load(self, attack, model, hyperparams_str, force=False, dir="logs"):
 
-        if hyperparams_str in self.dict[attack][model]:
-            raise ValueError("Record already loaded in dict")
+        if not force and hyperparams_str in self.dict[attack][model]:
+            raise RuntimeWarning("Record already loaded in dict")
 
-        with open(f"{dir}/{attack}-{model}-{hyperparams_str}.json", "r") as f:
-            self.dict[attack][model][hyperparams_str] = json.load(f)
+        with open(f"{dir}/{attack}-{model}-{hyperparams_str}", "rb") as f:
+            self.dict[attack][model][hyperparams_str] = pickle.load(f)
 
-    def load_all(self, dir="logs"):
+    def load_all(self, force=False, dir="logs"):
         for filename in os.listdir(dir):
-            attack, model, hyperparams_str = filename.split(".json")[0].split("-")
+            attack, model, hyperparams_str = filename.split("-")
             try:
-                self.load(attack, model, hyperparams_str, dir=dir)
-            except ValueError as e:
+                self.load(attack, model, hyperparams_str, force=force, dir=dir)
+            except RuntimeWarning as e:
                 print(f"{attack}-{model}-{hyperparams_str} already loaded.")
 
 

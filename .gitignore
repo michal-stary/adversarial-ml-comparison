@@ -2,6 +2,7 @@
 adv_env
 src/models
 src/data
+src/logs
 
 
 ## auto files
