@@ -30,6 +30,7 @@ class PyTorchModelTrackerBase:
             # compute loss - register forward hook (compute loss, save)
             # compute distance (norm) - register forward hook (compute distance, save)
 
+            # TODO change to track only distances and not really the all images -- too large to fit into RAM
             self._tracked_x.append(x)  # customize as you want
             self._func_counter += x.shape[0]
 

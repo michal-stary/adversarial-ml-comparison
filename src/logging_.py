@@ -1,6 +1,7 @@
 from collections import defaultdict
 import torch
 import matplotlib.pyplot as plt
+import json
 
 class Logger:
     def __init__(self):
@@ -12,26 +13,32 @@ class Logger:
         self.attack_name = model_name
         self.model_name = attack_name
         self.hyperparams_str = str(hyperparams)
-        # self.dict[self.attack_name][self.model_name][self.hyperparams_str] = defaultdict(None)
-        # self.dict[self.attack_name][self.model_name][self.hyperparams_str]
+
+    @property
+    def curr_dict(self, value):
+        self.dict[self.attack_name][self.model_name][self.hyperparams_str] = value
+
+    @curr_dict.getter
+    def curr_dict(self):
+        return self.dict[self.attack_name][self.model_name][self.hyperparams_str]
 
     def log(self, attr_name, data):
-        self.dict[self.attack_name][self.model_name][self.hyperparams_str][attr_name] = data
+        self.curr_dict[attr_name] = data
 
     def sum_log(self, attr_name, data):
-        self.dict[self.attack_name][self.model_name][self.hyperparams_str][attr_name] += data
+        self.curr_dict[attr_name] += data
 
     def append_log(self, attr_name, data):
-        if self.dict[self.attack_name][self.model_name][self.hyperparams_str][attr_name] is None:
-            self.dict[self.attack_name][self.model_name][self.hyperparams_str][attr_name] = [data]
+        if self.curr_dict[attr_name] is None:
+            self.curr_dict[attr_name] = [data]
         else:
-            self.dict[self.attack_name][self.model_name][self.hyperparams_str][attr_name].append(data)
+            self.curr_dict[attr_name].append(data)
 
     def extend_log(self, attr_name, data):
-        if self.dict[self.attack_name][self.model_name][self.hyperparams_str][attr_name] is None:
-            self.dict[self.attack_name][self.model_name][self.hyperparams_str][attr_name] = data
+        if self.curr_dict[attr_name] is None:
+            self.curr_dict[attr_name] = data
         else:
-            self.dict[self.attack_name][self.model_name][self.hyperparams_str][attr_name] += data
+            self.curr_dict[attr_name] += data
 
     def concat_batch_log(self, attr_name, data):
         """
@@ -47,22 +54,40 @@ class Logger:
         :param data: List of Tensors
         :return: None
         """
-        if attr_name not in self.dict[self.attack_name][self.model_name][self.hyperparams_str]:
-            self.dict[self.attack_name][self.model_name][self.hyperparams_str][attr_name] = data
+        if attr_name not in self.curr_dict:
+            self.curr_dict[attr_name] = data
         else:
-            tmp = self.dict[self.attack_name][self.model_name][self.hyperparams_str][attr_name]
+            tmp = self.curr_dict[attr_name]
 
             for i, x in enumerate(data):
-                self.dict[self.attack_name][self.model_name][self.hyperparams_str][attr_name][i] = torch.cat((tmp[i], data[i]))
+                self.curr_dict[attr_name][i] = torch.cat((tmp[i], data[i]))
 
     def __getattr__(self, attr):
         try:
             return self.__getattribute__(attr)
         except AttributeError:
-            return self.dict[self.attack_name][self.model_name][self.hyperparams_str][attr]
+            return self.curr_dict[attr]
 
+    def save(self, dir="logs", attack=None, model=None, hyperparams_str=None):
+        # use default
+        if attack is None:
+            attack = self.attack_name
+            model = self.model_name
+            hyperparams_str =self.hyperparams_str
 
+        # create json object from dictionary
+        json_ = json.dumps(self.dict[attack][model][hyperparams_str])
 
+        # open file for writing, "w"
+        with open(f"{dir}/{attack}_{model}_{hyperparams_str}.json", "w") as fo:
+            # write json object to file
+            fo.write(json_)
+
+    def save_all(self):
+        for attack in self.dict:
+            for model in self.dict[attack]:
+                for hyperparams_str in self.dict[attack][model]:
+                    self.save(attack,model, hyperparams_str)
 
     def plot_progress(self, kind="loss", attack=None, model=None, hyperparams_str=None):
         # use default
