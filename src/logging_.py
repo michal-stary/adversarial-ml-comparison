@@ -2,6 +2,7 @@ from collections import defaultdict
 import torch
 import matplotlib.pyplot as plt
 import json
+import os
 
 class Logger:
     def __init__(self):
@@ -79,7 +80,7 @@ class Logger:
         json_ = json.dumps(self.dict[attack][model][hyperparams_str])
 
         # open file for writing, "w"
-        with open(f"{dir}/{attack}_{model}_{hyperparams_str}.json", "w") as fo:
+        with open(f"{dir}/{attack}-{model}-{hyperparams_str}.json", "w") as fo:
             # write json object to file
             fo.write(json_)
 
@@ -88,6 +89,23 @@ class Logger:
             for model in self.dict[attack]:
                 for hyperparams_str in self.dict[attack][model]:
                     self.save(attack,model, hyperparams_str)
+
+    def load(self, attack, model, hyperparams_str, dir="logs"):
+
+        if hyperparams_str in self.dict[attack][model]:
+            raise ValueError("Record already loaded in dict")
+
+        with open(f"{dir}/{attack}-{model}-{hyperparams_str}.json", "r") as f:
+            self.dict[attack][model][hyperparams_str] = json.load(f)
+
+    def load_all(self, dir="logs"):
+        for filename in os.listdir(dir):
+            attack, model, hyperparams_str = filename.split(".json")[0].split("-")
+            try:
+                self.load(attack, model, hyperparams_str, dir=dir)
+            except ValueError as e:
+                print(f"{attack}-{model}-{hyperparams_str} already loaded.")
+
 
     def plot_progress(self, kind="loss", attack=None, model=None, hyperparams_str=None):
         # use default
