@@ -7,11 +7,11 @@ class Logger:
     def __init__(self):
         self.dict = defaultdict(lambda: defaultdict(lambda: defaultdict(lambda: defaultdict(None))))
 
-        self.setup("model", "attack", dict())
+        self.setup("attack", "model", dict())
 
-    def setup(self, model_name, attack_name, hyperparams):
-        self.attack_name = model_name
-        self.model_name = attack_name
+    def setup(self, attack_name, model_name, hyperparams):
+        self.attack_name = attack_name
+        self.model_name = model_name
         self.hyperparams_str = str(hyperparams)
 
     @property
