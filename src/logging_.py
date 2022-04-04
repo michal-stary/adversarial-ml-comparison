@@ -1,4 +1,6 @@
 from collections import defaultdict
+
+import numpy as np
 import torch
 import matplotlib.pyplot as plt
 import pickle
@@ -130,4 +132,24 @@ class Logger:
             model = self.model_name
             hyperparams_str =self.hyperparams_str
 
-        # TODO
+
+        qd = self.QD(self.dict[attack][model][hyperparams_str]["norm_progress"], self.dict[attack][model][hyperparams_str]["acc_progress"])
+
+        plt.plot(qd)
+
+    def QD_at_step(self, step_norm, step_acc, clean_acc):
+        # avoid inplace ops
+        step_norm_ = step_norm.copy()
+
+        step_norm_[step_acc==1] = torch.inf
+        step_norm_[clean_acc==0] = 0
+        assert step_acc[clean_acc==0].sum() == 0
+
+        return torch.median(step_norm_)
+
+    def QD(self, step_norms, step_accs):
+        clean_acc = step_accs[0]
+        qd = list()
+        for step in range(len(step_norms)):
+            qd.append(self.QD_at_step(step_norms[step], step_accs[step], clean_acc))
+        return qd

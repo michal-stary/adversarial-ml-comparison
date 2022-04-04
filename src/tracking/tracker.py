@@ -31,7 +31,8 @@ class PyTorchModelTrackerBase:
             # compute distance (norm) - register forward hook (compute distance, save)
 
             # TODO change to track only distances and not really the all images -- too large to fit into RAM
-            self._tracked_x.append(x)  # customize as you want
+            # self._tracked_x.append(x)  # customize as you want
+            self._tracked_norm.append(lp_distances(self.inputs, x, p=self._p, dim=1))
             self._func_counter += x.shape[0]
 
 
@@ -44,7 +45,8 @@ class PyTorchModelTrackerBase:
         # call reset after each example
         def reset(self):
             self._func_counter = torch.tensor(0)
-            self._tracked_x = list()
+            # self._tracked_x = list()
+            self._tracked_norm= list()
             self._tracked_pred = list()
             self._tracked_acc = list()
 
@@ -111,7 +113,7 @@ class PyTorchModelTrackerSetup(PyTorchModelTrackerBase):
         # log crucial information
         with torch.no_grad():
             self.logger.concat_batch_log("norm_progress",
-                        [lp_distances(self.inputs, x, p=self._p, dim=1) for x in self._tracked_x])
+                        self._tracked_norm)
 
             self.logger.concat_batch_log("loss_progress",
                         [self._loss_f(pred, self.labels) for pred in self._tracked_pred])
