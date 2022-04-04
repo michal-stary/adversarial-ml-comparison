@@ -8,47 +8,24 @@ import os
 class Logger:
     def __init__(self):
         self.dict = defaultdict(dict) #defaultdict(lambda: defaultdict(lambda: defaultdict(lambda: defaultdict(None))))
-        self.setup(0)
+        self.setup("dataset_model_attack_rest")
 
     def setup(self, run_id):
-        #self.attack_name = attack_name
-        #self.model_name = model_name
-        #self.hyperparams_str = str(hyperparams)
-
         self.run_id = run_id
 
     @property
     def curr_dict(self, value):
-        #self.dict[self.attack_name][self.model_name][self.hyperparams_str] = value
         self.dict[self.run_id] = value
+
     @curr_dict.getter
     def curr_dict(self):
-        # return self.dict[self.attack_name][self.model_name][self.hyperparams_str]
         return self.dict[self.run_id]
 
     def concat_batch_log(self, attr_name, data):
-        """
-        Enlarge the list of tensors in attr_name by concating new batch tensor on each corresponding location of top
-        level list
-
-        Example:
-        dict_state: [Tensor(2,0), Tensor(3,9)],
-        data: [Tensor([39,20]), Tensor([28,6])]
-            -> [Tensor([2,0,39,20]), Tensor([3,9,28,6])]
-
-        :param attr_name:
-        :param data: List of Tensors
-        :return: None
-        """
         if attr_name not in self.curr_dict:
             self.curr_dict[attr_name] = torch.stack(data).numpy()
         else:
             self.curr_dict[attr_name] = np.concatenate((self.curr_dict[attr_name], torch.stack(data).numpy()), axis=1)
-
-            # tmp = self.curr_dict[attr_name]
-            #
-            # for i, x in enumerate(data):
-            #     self.curr_dict[attr_name][i] = torch.cat((tmp[i], data[i]))
 
     def save(self, run_id=None, force=False, dir="logs"):
         # use default
@@ -63,12 +40,8 @@ class Logger:
         # make dir
         os.makedirs(path, exist_ok=True)
 
-
         for attr in self.dict[run_id]:
             np.save(f"{dir}/{run_id}/{attr}.npy", self.dict[run_id][attr])
-
-            # with open(path, "wb") as fo:
-            #     pickle.dump(self.dict[attack][model][hyperparams_str], fo)
 
     def save_all(self, force=False, dir="logs"):
 
@@ -78,15 +51,6 @@ class Logger:
             except RuntimeWarning as e:
                 run_id = e.args
                 print(f"Log of {run_id} already saved ... skipping")
-        #
-        # for attack in self.dict:
-        #     for model in self.dict[attack]:
-        #         for hyperparams_str in self.dict[attack][model]:
-        #             try:
-        #                 self.save(attack,model, hyperparams_str,force, dir)
-        #             except RuntimeWarning as e:
-        #                 attack, model, hyperparams_str = e.args
-        #                 print(f"Log of {attack}-{model}-{hyperparams_str} already saved ... skipping")
 
     def load(self, run_id, force=False, dir="logs"):
 
@@ -94,7 +58,7 @@ class Logger:
             raise RuntimeWarning("Record already loaded in dict")
 
         for entry in os.scandir(f"{dir}/{run_id}"):
-            self.dict[run_id][entry.name[:-3]] = np.load(entry.name)
+            self.dict[run_id][entry.name[:-4]] = np.load(f"{dir}/{run_id}/{entry.name}")
 
     def load_all(self, force=False, dir="logs"):
         for run_id in os.listdir(dir):

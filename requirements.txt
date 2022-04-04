@@ -5,5 +5,6 @@ foolbox
 torchvision
 matplotlib
 markupsafe==2.0.1
-flatten_json
+scikit-learn
+
 
