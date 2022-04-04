@@ -13,6 +13,8 @@ def create_loaders(data_dir, task_config, batch_size, transform=None, random_sta
         dataset_test = datasets.CIFAR10(data_dir, train=False, transform=transform, download=True)
     if task_config == 'MNIST':
         dataset_test = datasets.MNIST(data_dir, train=False, transform=transform, download=True)
+    if task_config == 'IMAGENET':
+        dataset_test = datasets.ImageNet(data_dir, train=False, transform=transform, download=True)
 
     if random_state is not None:
         torch.manual_seed(random_state)
