@@ -26,7 +26,8 @@ class Sweeper:
     def build_df_from_dict(cls, d):
         # make pandas df from the json config (cartesian product)
         g = ParameterGrid(d)
-        return pd.DataFrame([*g]).drop_duplicates()
+        # print([*g])
+        return pd.DataFrame([*g]).drop_duplicates().convert_dtypes()
 
     @classmethod
     def from_csvfile(cls, path):
@@ -43,7 +44,7 @@ class Sweeper:
 
     def sweep(self, n_samples=100, recompute=False):
         for index, row in self.config_df.iterrows():
-
+            row = row.dropna()
 
             # check if row not already logged
             if not recompute and index == 0:
