@@ -139,7 +139,7 @@ class Logger:
 
     def QD_at_step(self, step_norm, step_acc, clean_acc):
         # avoid inplace ops
-        step_norm_ = step_norm.copy()
+        step_norm_ = step_norm.clone()
 
         step_norm_[step_acc==1] = torch.inf
         step_norm_[clean_acc==0] = 0
