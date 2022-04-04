@@ -32,14 +32,16 @@ class PyTorchModelTrackerBase:
 
             # TODO change to track only distances and not really the all images -- too large to fit into RAM
             # self._tracked_x.append(x)  # customize as you want
-            self._tracked_norm.append(lp_distances(self.inputs, x, p=self._p, dim=1))
-            self._func_counter += x.shape[0]
+            with torch.no_grad():
+                self._tracked_norm.append(lp_distances(self.inputs, x, p=self._p, dim=1))
+                self._func_counter += x.shape[0]
 
 
             pred = self._model.__call__(x)
 
-            self._tracked_pred.append(pred)
-            self._tracked_acc.append((pred.argmax(dim=-1) == self.labels).float())
+            with torch.no_grad():
+                self._tracked_pred.append(pred)
+                self._tracked_acc.append((pred.argmax(dim=-1) == self.labels).float())
             return pred
 
         # call reset after each example

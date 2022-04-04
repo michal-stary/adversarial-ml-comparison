@@ -42,21 +42,21 @@ class Sweeper:
         self.data_dir = data_dir
 
 
-    def sweep(self, n_samples=100, recompute=False):
+    def sweep(self, n_samples=100, recompute=False, logs_dir="logs"):
         for index, row in self.config_df.iterrows():
             row = row.dropna()
 
-            # check if row not already logged
-            if not recompute and index == 0:
+            # TODO - check if row not already logged
+            if not recompute and self.logger.is_logged(index, logs_dir):
                 continue
-            print(row.attack)
+            print(row)
             # run attack
-            #self.logger.setup(run_id=row.index)
-            self.logger.setup(attack_name=row.attack, model_name=row.model, hyperparams="default")
+            self.logger.setup(run_id=index)
+            # self.logger.setup(attack_name=row.attack, model_name=row.model, hyperparams="default")
             self.run(n_samples=n_samples, **row.to_dict())
 
             # save attack log to disk
-            self.logger.save()
+            self.logger.save(force=True)
 
             # print progress
             print(f"Done: {index}/{self.config_df.shape[0]}")
