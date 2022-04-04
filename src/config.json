@@ -5,27 +5,27 @@
     "model":  ["Gowal2021Improving_R18_ddpm_100m", "Rade2021Helper_R18_extra"],
     "norm": ["Linf"],
     "steps": [100],
-    "loss_f": ["DL"]
+    "loss_f": ["DL"],
+    "α_init": [1.0],
+    "α_final": [null],
+    "γ_init": [0.05],
+    "γ_final": [0.001],
+    "binary_search_steps": [10]
   },
   {
     "dataset": ["CIFAR10"],
     "attack": ["fmn"],
-    "model":  ["Gowal2021Improving_R18_ddpm_100m", "Rade2021Helper_R18_extra"],
+    "model":  ["Rade2021Helper_R18_ddpm", "Rebuffi2021Fixing_R18_cutmix_ddpm"],
     "norm": ["L2"],
+    "loss_f": ["DL"],
     "steps": [100]
   },
     {
     "dataset": ["CIFAR10"],
     "attack": ["alma"],
-    "model":  ["Gowal2021Improving_R18_ddpm_100m", "Rade2021Helper_R18_extra"],
+    "model":  ["Rebuffi2021Fixing_R18_cutmix_ddpm", "Rade2021Helper_R18_ddpm"],
     "norm": ["L2"],
-    "num_steps": [100]
-  },
-  {
-    "dataset": ["CIFAR10"],
-    "attack": ["alma"],
-    "model":  ["Gowal2021Improving_R18_ddpm_100m", "Rade2021Helper_R18_extra"],
-    "norm": ["Linf"],
+    "loss_f": ["DL"],
     "num_steps": [100]
   }
 ]
