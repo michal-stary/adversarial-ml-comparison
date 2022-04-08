@@ -23,15 +23,15 @@ class PyTorchModelTrackerBase:
             pred = self._model.__call__(x)
 
             with torch.no_grad():
-                self._tracked_pred.append(pred)
+                self._tracked_loss.append(self._loss_f(pred, self.labels))
                 self._tracked_acc.append((pred.argmax(dim=-1) == self.labels).float())
             return pred
 
-        # call reset after each example
+        # call reset after each attack call
         def reset(self):
             self._func_counter = torch.tensor(0)
             self._tracked_norm= list()
-            self._tracked_pred = list()
+            self._tracked_loss= list()
             self._tracked_acc = list()
 
 
@@ -85,7 +85,7 @@ class PyTorchModelTrackerSetup(PyTorchModelTrackerBase):
                         self._tracked_norm)
 
             self.logger.concat_batch_log("loss_progress",
-                        [self._loss_f(pred, self.labels) for pred in self._tracked_pred])
+                        self._tracked_loss)
 
             self.logger.concat_batch_log("acc_progress", self._tracked_acc)
 

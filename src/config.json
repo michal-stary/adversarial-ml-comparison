@@ -18,7 +18,7 @@
     "model":  ["Rade2021Helper_R18_ddpm", "Rebuffi2021Fixing_R18_cutmix_ddpm"],
     "norm": ["L2"],
     "loss_f": ["DL"],
-    "steps": [100]
+    "steps": [500]
   },
     {
     "dataset": ["CIFAR10"],
@@ -26,6 +26,14 @@
     "model":  ["Rebuffi2021Fixing_R18_cutmix_ddpm", "Rade2021Helper_R18_ddpm"],
     "norm": ["L2"],
     "loss_f": ["DL"],
-    "num_steps": [100]
+    "num_steps": [500]
+  },
+      {
+    "dataset": ["CIFAR10"],
+    "attack": ["alma"],
+    "model":  ["Rebuffi2021Fixing_R18_cutmix_ddpm", "Rade2021Helper_R18_ddpm"],
+    "norm": ["L2"],
+    "loss_f": ["DL"],
+    "num_steps": [50]
   }
 ]

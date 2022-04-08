@@ -51,7 +51,10 @@ class Sweeper:
             run_id = "-".join(row.dropna().to_string(header=False).split())
 
             if not recompute and self.logger.is_logged(run_id, logs_dir):
-                self.logger.load(run_id, dir=logs_dir)
+                try:
+                    self.logger.load(run_id, dir=logs_dir)
+                except Warning:
+                    pass
                 continue
             print(row)
 

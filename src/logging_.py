@@ -91,13 +91,14 @@ class Logger:
         plt.plot(qd)
 
     def QD_at_step(self, step_norm, step_acc, clean_acc):
+        # print(step_norm)
         # avoid inplace ops
         step_norm_ = step_norm.copy()
 
         step_norm_[step_acc==1] = np.inf
         step_norm_[clean_acc==0] = 0
         #assert step_acc[clean_acc==0].sum() == 0
-
+        # print(step_norm_)
         return np.median(step_norm_)
 
     def QD(self, step_norms, step_accs):
