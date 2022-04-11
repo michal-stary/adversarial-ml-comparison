@@ -31,15 +31,15 @@ EXTERNAL_MODELS = {
 #     return model
 
 
-def load_externals(key):
-    threat_model, load_fn = EXTERNAL_MODELS[key]
-    model = load_fn()
+def load_externals(model_name, dataset, model_dir):
+    threat_model , load_fn = EXTERNAL_MODELS[model_name]
+    model = load_fn(dataset, threat_model, model_dir)
     return model
 
 
 def load_model(model_name, dataset, threat_model, model_dir):
     if model_name in EXTERNAL_MODELS.keys():
-        return load_externals(model_name)
+        return load_externals(model_name, dataset, model_dir)
     try:
         return load_rb_model(model_name=model_name, dataset=dataset,
                            threat_model=threat_model, model_dir=model_dir)
