@@ -11,7 +11,7 @@ import torch
 from src.utils.data_utils import create_loaders
 from tqdm import tqdm
 from zoo import load_model
-
+from pytorch_lightning.trainer import Trainer
 
 class Sweeper:
     @classmethod
@@ -114,8 +114,19 @@ class Sweeper:
 
         # automatic batch size discovery
         if batch_size is None:
-            #todo
-            batch_size = 20
+            if device == "cpu":
+                batch_size = 1
+
+            else:
+                trainer = Trainer(auto_scale_batch_size="binsearch")
+                hp = trainer.tune(model, val_dataloaders=create_loaders(self.data_dir, task_config=kwargs["dataset"],
+                                     batch_size=32,
+                                     transform=None,
+                                     random_state=0,
+                                     n_workers=n_workers))
+                print(hp)
+                #todo
+                batch_size = 20
 
         hyperparams = {**kwargs}
         hyperparams.pop("model")

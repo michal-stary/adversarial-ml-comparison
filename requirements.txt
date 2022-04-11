@@ -6,5 +6,5 @@ torchvision
 matplotlib
 markupsafe==2.0.1
 scikit-learn
-
+pytorch_lightning
 
