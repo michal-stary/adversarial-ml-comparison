@@ -2,9 +2,10 @@ import json
 import pandas as pd
 from sklearn.model_selection._search import ParameterGrid
 from logging_ import Logger
-from adv_lib.attacks import fmn, alma
+from adv_lib.attacks import fmn, alma, apgd
+from adv_lib.attacks.auto_pgd import minimal_apgd
 from robustbench.utils import load_model
-from tracking import PyTorchModelTrackerSetup
+from tracking import PyTorchModelTracker
 from torchvision import transforms
 import torch
 from src.utils.data_utils import create_loaders
@@ -75,25 +76,34 @@ class Sweeper:
                 attack_f = fmn
             elif kwargs["attack"] == "alma":
                 attack_f = alma
+            elif kwargs["attack"] == "apgd":
+                attack_f = minimal_apgd
         else:
             raise Warning()
 
         if "norm" in kwargs:
-            if attack_f == fmn:
-                numerical_part = kwargs["norm"][1:]
-                numeric_norm = float(numerical_part)
+            numerical_part = kwargs["norm"][1:]
+            numeric_norm = float(numerical_part)
+            if attack_f == fmn or attack_f == minimal_apgd:
                 norm_dict = {"norm":numeric_norm}
             elif attack_f == alma:
                 norm_dict = {"distance": kwargs["norm"].lower()}
-
+        else:
+            raise RuntimeError(f"Norm not present in {kwargs}")
 
         if "model" in kwargs and "dataset" in kwargs and "norm" in kwargs:
-            model = load_model(model_name=kwargs["model"], dataset=kwargs["dataset"].lower(),
-                               threat_model=kwargs["norm"], model_dir=self.model_dir)
+            try:
+                model = load_model(model_name=kwargs["model"], dataset=kwargs["dataset"].lower(),
+                                   threat_model=kwargs["norm"], model_dir=self.model_dir)
+            except ValueError as e:
+
+                print(f'Model not available in {kwargs["norm"]}...using L2 instead')
+                model = load_model(model_name=kwargs["model"], dataset=kwargs["dataset"].lower(),
+                                   threat_model="L2", model_dir=self.model_dir)
         else:
             raise Warning()
 
-        tracked_model = PyTorchModelTrackerSetup(model, loss_f=kwargs["loss_f"], logger=self.logger)  # pytorch model
+        tracked_model = PyTorchModelTracker(model, p=numeric_norm, logger=self.logger, loss_f=kwargs["loss_f"], track_acc=True)  # pytorch model
 
         hyperparams = {**kwargs}
         hyperparams.pop("model")

@@ -62,6 +62,8 @@ class Logger:
 
     def load_all(self, force=False, dir="logs"):
         for run_id in os.listdir(dir):
+            if not os.path.isdir(os.path.join(dir, run_id)):
+                continue
             try:
                 self.load(run_id, force=force, dir=dir)
             except RuntimeWarning as e:
@@ -72,6 +74,11 @@ class Logger:
         return os.path.exists(path)
 
     def plot_progress(self, kind="loss", run_id=None):
+
+        # todo deal with not tracked loss/acc
+        # - raise warning
+        # - add functionality to compute loss,acc from pred + labels
+
         # use default
         if run_id is None:
             run_id = self.run_id
@@ -104,6 +111,9 @@ class Logger:
     def QD(self, step_norms, step_accs):
         clean_acc = step_accs[0]
         qd = list()
+        running_min = float("inf")
         for step in range(len(step_norms)):
-            qd.append(self.QD_at_step(step_norms[step], step_accs[step], clean_acc))
+            curr = self.QD_at_step(step_norms[step], step_accs[step], clean_acc)
+            running_min = min(running_min,curr)
+            qd.append(running_min)
         return qd
