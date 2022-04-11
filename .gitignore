@@ -1,8 +1,10 @@
 .idea
 adv_env
+fmn_eval
 src/models
 src/data
 src/logs
+
 
 
 ## auto files

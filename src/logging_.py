@@ -23,9 +23,20 @@ class Logger:
 
     def concat_batch_log(self, attr_name, data):
         if attr_name not in self.curr_dict:
-            self.curr_dict[attr_name] = torch.stack(data).numpy()
+            self.curr_dict[attr_name] = torch.stack(data).to("cpu").numpy()
         else:
-            self.curr_dict[attr_name] = np.concatenate((self.curr_dict[attr_name], torch.stack(data).numpy()), axis=1)
+            self.curr_dict[attr_name] = np.concatenate((self.curr_dict[attr_name], torch.stack(data).to("cpu").numpy()), axis=1)
+
+
+    def where(self, **kwargs):
+        new = dict()
+
+        for key in self.dict:
+            if not all((f"{param}-{kwargs[param]}" in key for param in kwargs)):
+                continue
+            new[key] = self.dict[key]
+        return new
+
 
     def save(self, run_id=None, force=False, dir="logs"):
         # use default

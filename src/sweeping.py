@@ -4,13 +4,13 @@ from sklearn.model_selection._search import ParameterGrid
 from logging_ import Logger
 from adv_lib.attacks import fmn, alma, apgd
 from adv_lib.attacks.auto_pgd import minimal_apgd
-from robustbench.utils import load_model
+#from robustbench.utils import load_model
 from tracking import PyTorchModelTracker
 from torchvision import transforms
 import torch
 from src.utils.data_utils import create_loaders
 from tqdm import tqdm
-
+from zoo import load_model
 
 
 class Sweeper:
@@ -44,7 +44,7 @@ class Sweeper:
         self.data_dir = data_dir
 
 
-    def sweep(self, n_samples=100, recompute=False, logs_dir="logs"):
+    def sweep(self, n_samples=100, recompute=False, logs_dir="logs", device=None):
         for index, row in self.config_df.iterrows():
             row = row.dropna()
 
@@ -59,10 +59,14 @@ class Sweeper:
                 continue
             print(row)
 
+            # get device
+            if device is None:
+                device = "cuda" if torch.cuda.is_available() else "cpu"
+
             # run attack
             self.logger.setup(run_id=run_id)
             # self.logger.setup(attack_name=row.attack, model_name=row.model, hyperparams="default")
-            self.run(n_samples=n_samples, **row.to_dict())
+            self.run(n_samples=n_samples, device=device, **row.to_dict())
 
             # save attack log to disk
             self.logger.save(force=True)
@@ -70,7 +74,7 @@ class Sweeper:
             # print progress
             print(f"Done: {index+1}/{self.config_df.shape[0]}")
 
-    def run(self, n_samples=100, batch_size=20, **kwargs):
+    def run(self, n_samples=100, batch_size=20, n_workers=1, device="cpu", **kwargs):
         if "attack" in kwargs:
             if kwargs["attack"] == "fmn":
                 attack_f = fmn
@@ -81,6 +85,8 @@ class Sweeper:
         else:
             raise Warning()
 
+
+        # parse norm
         if "norm" in kwargs:
             numerical_part = kwargs["norm"][1:]
             numeric_norm = float(numerical_part)
@@ -91,28 +97,35 @@ class Sweeper:
         else:
             raise RuntimeError(f"Norm not present in {kwargs}")
 
-        if "model" in kwargs and "dataset" in kwargs and "norm" in kwargs:
-            try:
-                model = load_model(model_name=kwargs["model"], dataset=kwargs["dataset"].lower(),
-                                   threat_model=kwargs["norm"], model_dir=self.model_dir)
-            except ValueError as e:
+        if "threat_norm" not in kwargs:
+            kwargs["threat_norm"] = kwargs["norm"]
 
-                print(f'Model not available in {kwargs["norm"]}...using L2 instead')
-                model = load_model(model_name=kwargs["model"], dataset=kwargs["dataset"].lower(),
-                                   threat_model="L2", model_dir=self.model_dir)
-        else:
-            raise Warning()
+        # load model
+        if "model" in kwargs and "dataset" in kwargs and "norm" in kwargs:
+            model = load_model(model_name=kwargs["model"], dataset=kwargs["dataset"].lower(),
+                               threat_model=kwargs["threat_norm"], model_dir=self.model_dir)
+
+        #
+        model.eval()
+        model = model.to(device)
+
 
         tracked_model = PyTorchModelTracker(model, p=numeric_norm, logger=self.logger, loss_f=kwargs["loss_f"], track_acc=True)  # pytorch model
+
+        # automatic batch size discovery
+        if batch_size is None:
+            #todo
+            batch_size = 20
 
         hyperparams = {**kwargs}
         hyperparams.pop("model")
         hyperparams.pop("dataset")
         hyperparams.pop("attack")
         hyperparams.pop("norm")
+        hyperparams.pop("threat_norm")
         hyperparams.pop("loss_f")
 
-        n_workers = 1
+
         data_loader = create_loaders(self.data_dir, task_config=kwargs["dataset"],
                                      batch_size=batch_size,
                                      transform=None,
@@ -122,6 +135,7 @@ class Sweeper:
         for b, (images, labels) in enumerate(tqdm(data_loader, total=n_samples // batch_size)):
             if b * batch_size >= n_samples:
                 break
+            images, labels = images.to(device), labels.to(device)
 
             tracked_model.setup(images, labels)
 

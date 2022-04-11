@@ -2,9 +2,9 @@
   {
     "dataset": ["CIFAR10"],
     "attack": ["fmn"],
-    "model":  ["Gowal2021Improving_R18_ddpm_100m", "Rade2021Helper_R18_extra"],
+    "model":  ["Gowal2021Improving_R18_ddpm_100m", "Rade2021Helper_R18_extra", "Engstrom2019Robustness"],
     "norm": ["Linf"],
-    "steps": [1000],
+    "steps": [100,1000],
     "loss_f": ["DL"],
     "α_init": [1.0],
     "α_final": [null],
@@ -15,52 +15,104 @@
     {
     "dataset": ["CIFAR10"],
     "attack": ["apgd"],
-    "model":  ["Gowal2021Improving_R18_ddpm_100m", "Rade2021Helper_R18_extra"],
+    "model":  ["Gowal2021Improving_R18_ddpm_100m", "Rade2021Helper_R18_extra", "Engstrom2019Robustness"],
     "norm": ["Linf"],
     "n_iter": [100],
     "loss_f": ["DL"],
     "binary_search_steps": [10],
-      "max_eps": [0.032]
+      "max_eps": [0.032, 0.1]
   },
+
+
+
+
+
+
+
+
+
   {
     "dataset": ["CIFAR10"],
     "attack": ["fmn"],
-    "model":  ["Rade2021Helper_R18_ddpm", "Rebuffi2021Fixing_R18_cutmix_ddpm"],
+    "model":  ["Rade2021Helper_R18_ddpm", "Rebuffi2021Fixing_R18_cutmix_ddpm", "Engstrom2019Robustness"],
     "norm": ["L2"],
     "loss_f": ["DL"],
-    "steps": [1000]
-  },
-    {
-    "dataset": ["CIFAR10"],
-    "attack": ["fmn"],
-    "model":  ["Rade2021Helper_R18_ddpm", "Rebuffi2021Fixing_R18_cutmix_ddpm"],
-    "norm": ["L2"],
-    "loss_f": ["DL"],
-    "steps": [100]
+    "steps": [100, 1000]
   },
     {
     "dataset": ["CIFAR10"],
     "attack": ["alma"],
-    "model":  ["Rebuffi2021Fixing_R18_cutmix_ddpm", "Rade2021Helper_R18_ddpm"],
+    "model":  ["Rebuffi2021Fixing_R18_cutmix_ddpm", "Rade2021Helper_R18_ddpm", "Engstrom2019Robustness"],
     "norm": ["L2"],
     "loss_f": ["DL"],
-    "num_steps": [1000]
+    "num_steps": [100, 1000]
   },
+
+
+
+
+
+
+
+  {
+    "dataset": ["CIFAR10"],
+    "attack": ["fmn"],
+    "model":  ["Engstrom2019Robustness"],
+    "norm": ["L1"],
+    "threat_norm": ["L2", "Linf"],
+    "loss_f": ["DL"],
+    "steps": [100, 1000]
+  },
+    {
+    "dataset": ["CIFAR10"],
+    "attack": ["alma"],
+    "model":  ["Engstrom2019Robustness"],
+    "norm": ["L1"],
+    "threat_norm": ["L2", "Linf"],
+    "loss_f": ["DL"],
+    "num_steps": [100, 1000]
+  },
+
+  {
+    "dataset": ["CIFAR10"],
+    "attack": ["apgd"],
+    "model":  ["Engstrom2019Robustness"],
+    "threat_norm": ["Linf", "L2"],
+    "norm": ["L1"],
+    "n_iter": [100],
+    "loss_f": ["DL"],
+    "binary_search_steps": [10],
+    "max_eps": [12, 24]
+  },
+
     {
     "dataset": ["CIFAR10"],
     "attack": ["fmn"],
     "model":  ["Augustin2020Adversarial_34_10_extra"],
     "norm": ["L1"],
+    "threat_norm": ["L2"],
     "loss_f": ["DL"],
-    "steps": [1000]
+    "steps": [100, 1000]
   },
     {
     "dataset": ["CIFAR10"],
     "attack": ["alma"],
     "model":  ["Augustin2020Adversarial_34_10_extra"],
     "norm": ["L1"],
+    "threat_norm": ["L2"],
     "loss_f": ["DL"],
-    "num_steps": [1000]
+    "num_steps": [100, 1000]
+  },
+      {
+    "dataset": ["CIFAR10"],
+    "attack": ["apgd"],
+    "model":  ["Augustin2020Adversarial_34_10_extra"],
+    "threat_norm": ["L2"],
+    "norm": ["L1"],
+    "n_iter": [100],
+    "loss_f": ["DL"],
+    "binary_search_steps": [10],
+    "max_eps": [12, 24]
   }
 ]
 
