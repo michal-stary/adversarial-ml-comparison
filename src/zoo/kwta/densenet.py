@@ -4,7 +4,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from src.zoo.kwta import models
+from zoo.kwta import models
 
 
 class SparseBottleneck(nn.Module):

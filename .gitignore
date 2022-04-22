@@ -5,7 +5,8 @@ src/models
 src/data
 src/logs
 
-
+run_lab
+run_lab_screen
 
 ## auto files
 # Byte-compiled / optimized / DLL files

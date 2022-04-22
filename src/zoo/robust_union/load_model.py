@@ -3,7 +3,7 @@ import os
 import torch
 from robustbench.utils import download_gdrive
 
-from src.zoo.robust_union.preact_resnet import PreActResNet18
+from zoo.robust_union.preact_resnet import PreActResNet18
 # from utils.config import DEVICE
 
 MODEL_ID_MSD = '1CorITtTqTkB3N2D41NsyJB4W-Ql4HkGO'

@@ -3,7 +3,7 @@ from pathlib import Path
 import torch
 from robustbench.utils import download_gdrive
 
-from src.zoo.kwta import densenet
+from zoo.kwta import densenet
 # from utils.config import DEVICE
 
 MODEL_ID = '1tcepCx14tD5TaPs6KBjRT9n0Q8jjWDXj'

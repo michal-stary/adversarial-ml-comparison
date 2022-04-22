@@ -2,7 +2,7 @@ import torch
 from adv_lib.distances.lp_norms import lp_distances
 from adv_lib.utils.losses import difference_of_logits, difference_of_logits_ratio
 from torch.nn.functional import cross_entropy
-from src.logging_ import Logger
+from logging_ import Logger
 
 
 class PyTorchModelTracker:

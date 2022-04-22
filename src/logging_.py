@@ -4,15 +4,21 @@ import torch
 import matplotlib.pyplot as plt
 import pickle
 import os
+import time
 
 class Logger:
     def __init__(self):
         self.dict = defaultdict(dict) #defaultdict(lambda: defaultdict(lambda: defaultdict(lambda: defaultdict(None))))
-        self.setup("dataset_model_attack_rest")
+        self.setup("dataset_model_attack_rest", 0)
 
-    def setup(self, run_id):
+    def setup(self, run_id, n_samples):
         self.run_id = run_id
-
+        self.dict[run_id] = dict()
+        
+        self.single_log("n_samples", n_samples)
+        self.single_log("start_time", time.time())
+        
+        
     @property
     def curr_dict(self, value):
         self.dict[self.run_id] = value
@@ -21,6 +27,9 @@ class Logger:
     def curr_dict(self):
         return self.dict[self.run_id]
 
+    def single_log(self, attr_name, data):
+        self.curr_dict[attr_name] = data
+            
     def concat_batch_log(self, attr_name, data):
         if attr_name not in self.curr_dict:
             self.curr_dict[attr_name] = torch.stack(data).to("cpu").numpy()
@@ -39,6 +48,8 @@ class Logger:
 
 
     def save(self, run_id=None, force=False, dir="logs"):
+        self.single_log("end_time", time.time())
+        
         # use default
         if run_id is None:
             run_id = self.run_id
@@ -53,7 +64,7 @@ class Logger:
 
         for attr in self.dict[run_id]:
             np.save(f"{dir}/{run_id}/{attr}.npy", self.dict[run_id][attr])
-
+            
     def save_all(self, force=False, dir="logs"):
 
         for run_id in self.dict:

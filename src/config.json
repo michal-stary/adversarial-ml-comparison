@@ -6,9 +6,9 @@
     "norm": ["Linf"],
     "steps": [100,1000],
     "loss_f": ["DL"],
-    "α_init": [1.0],
-    "α_final": [null],
-    "γ_init": [0.05],
+    "α_init": [1,10,100,1000],
+    "α_final": [0.0001],
+    "γ_init": [0.05, 0.03],
     "γ_final": [0.001],
     "binary_search_steps": [10]
   },
@@ -37,7 +37,12 @@
     "model":  ["Rade2021Helper_R18_ddpm", "Rebuffi2021Fixing_R18_cutmix_ddpm", "Engstrom2019Robustness"],
     "norm": ["L2"],
     "loss_f": ["DL"],
-    "steps": [100, 1000]
+    "steps": [100, 1000],
+    "α_init": [1,5,10],
+    "α_final": [0.0001],
+    "γ_init": [0.05, 0.03],
+    "γ_final": [0.001],
+    "binary_search_steps": [10]
   },
     {
     "dataset": ["CIFAR10"],
@@ -57,18 +62,25 @@
   {
     "dataset": ["CIFAR10"],
     "attack": ["fmn"],
-    "model":  ["Engstrom2019Robustness"],
+    "model":  ["Engstrom2019Robustness_l2", "Engstrom2019Robustness_linf", "Augustin2020Adversarial_34_10_extra", 
+               "Rice2020Overfitting",  "Xiao2020Enhancing",
+              "Maini2020MultipleMSD", "Maini2020MultipleAVG"],
     "norm": ["L1"],
-    "threat_norm": ["L2", "Linf"],
     "loss_f": ["DL"],
-    "steps": [100, 1000]
+    "steps": [100, 1000],
+    "α_init": [1,5,10],
+    "α_final": [0.0001],
+    "γ_init": [0.05, 0.03],
+    "γ_final": [0.001],
+    "binary_search_steps": [10]
   },
     {
     "dataset": ["CIFAR10"],
     "attack": ["alma"],
-    "model":  ["Engstrom2019Robustness"],
+    "model":  ["Engstrom2019Robustness_l2", "Engstrom2019Robustness_linf", "Augustin2020Adversarial_34_10_extra", 
+               "Rice2020Overfitting", "Xiao2020Enhancing",
+              "Maini2020MultipleMSD", "Maini2020MultipleAVG"],
     "norm": ["L1"],
-    "threat_norm": ["L2", "Linf"],
     "loss_f": ["DL"],
     "num_steps": [100, 1000]
   },
@@ -76,44 +88,18 @@
   {
     "dataset": ["CIFAR10"],
     "attack": ["apgd"],
-    "model":  ["Engstrom2019Robustness"],
-    "threat_norm": ["Linf", "L2"],
-    "norm": ["L1"],
-    "n_iter": [100],
-    "loss_f": ["DL"],
-    "binary_search_steps": [10],
-    "max_eps": [12, 24]
-  },
-
-    {
-    "dataset": ["CIFAR10"],
-    "attack": ["fmn"],
-    "model":  ["Augustin2020Adversarial_34_10_extra"],
-    "norm": ["L1"],
-    "threat_norm": ["L2"],
-    "loss_f": ["DL"],
-    "steps": [100, 1000]
-  },
-    {
-    "dataset": ["CIFAR10"],
-    "attack": ["alma"],
-    "model":  ["Augustin2020Adversarial_34_10_extra"],
-    "norm": ["L1"],
-    "threat_norm": ["L2"],
-    "loss_f": ["DL"],
-    "num_steps": [100, 1000]
-  },
-      {
-    "dataset": ["CIFAR10"],
-    "attack": ["apgd"],
-    "model":  ["Augustin2020Adversarial_34_10_extra"],
-    "threat_norm": ["L2"],
+    "model":  ["Engstrom2019Robustness_linf", "Engstrom2019Robustness_l2", "Augustin2020Adversarial_34_10_extra", 
+               "Rice2020Overfitting", "Xiao2020Enhancing",
+              "Maini2020MultipleMSD", "Maini2020MultipleAVG"],
     "norm": ["L1"],
     "n_iter": [100],
     "loss_f": ["DL"],
     "binary_search_steps": [10],
     "max_eps": [12, 24]
   }
+
+
+    
 ]
 
 

@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 import numpy as np
-from src.zoo.kwta import models
+from zoo.kwta import models
 import copy
 from tqdm import tqdm
 
