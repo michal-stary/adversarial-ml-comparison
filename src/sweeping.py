@@ -107,7 +107,9 @@ class Sweeper:
         model = model.to(device)
 
 
-        tracked_model = PyTorchModelTracker(model, p=numeric_norm, logger=self.logger, loss_f=kwargs["loss_f"], track_acc=True)  # pytorch model
+        # tracked_model = PyTorchModelTracker(model, p=numeric_norm, logger=self.logger, loss_f=kwargs["loss_f"], track_acc=True)  # pytorch model
+
+        tracked_model = PyTorchModelTracker(model, p=numeric_norm, logger=self.logger, loss_f=None, track_acc=False)  # pytorch model
 
         # automatic batch size
         if batch_size is None:

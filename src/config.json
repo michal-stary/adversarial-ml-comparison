@@ -50,9 +50,18 @@
     "model":  ["Rebuffi2021Fixing_R18_cutmix_ddpm", "Rade2021Helper_R18_ddpm", "Engstrom2019Robustness_l2"],
     "norm": ["L2"],
     "loss_f": ["DL"],
-    "num_steps": [100, 1000]
+    "α": [0.9]
+    "num_steps": [1000]
   },
-
+    {
+    "dataset": ["CIFAR10"],
+    "attack": ["alma"],
+    "model":  ["Rebuffi2021Fixing_R18_cutmix_ddpm", "Rade2021Helper_R18_ddpm", "Engstrom2019Robustness_l2"],
+    "norm": ["L2"],
+    "loss_f": ["DL"],
+    "α": [0.5]
+    "num_steps": [100]
+  },
 
 
 
@@ -82,7 +91,19 @@
               "Maini2020MultipleMSD", "Maini2020MultipleAVG"],
     "norm": ["L1"],
     "loss_f": ["DL"],
-    "num_steps": [100, 1000]
+    "α": [0.9]
+    "num_steps": [1000]
+  },
+    {
+    "dataset": ["CIFAR10"],
+    "attack": ["alma"],
+    "model":  ["Engstrom2019Robustness_l2", "Engstrom2019Robustness_linf", "Augustin2020Adversarial_34_10_extra", 
+               "Rice2020Overfitting", "Xiao2020Enhancing",
+              "Maini2020MultipleMSD", "Maini2020MultipleAVG"],
+    "norm": ["L1"],
+    "loss_f": ["DL"],
+    "α": [0.5]
+    "num_steps": [100]
   },
 
   {
