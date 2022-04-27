@@ -1,15 +1,25 @@
 from collections import defaultdict
 import numpy as np
+import pandas as pd
 import torch
 import matplotlib.pyplot as plt
 import pickle
 import os
 import time
+from utils.metrics import QD, min_median, n_qs_to_reach, attack_succes_rate
+
+
+COLORS = {
+    "fmn": "red",
+    "alma": "blue",
+    "apgd": "green"
+}
+
 
 class Logger:
     def __init__(self):
         self.dict = defaultdict(dict) #defaultdict(lambda: defaultdict(lambda: defaultdict(lambda: defaultdict(None))))
-        self.setup("dataset_model_attack_rest", 0)
+        #self.setup("dataset_model_attack_rest", 0)
 
     def setup(self, run_id, n_samples):
         self.run_id = run_id
@@ -36,12 +46,24 @@ class Logger:
         else:
             self.curr_dict[attr_name] = np.concatenate((self.curr_dict[attr_name], torch.stack(data).to("cpu").numpy()), axis=1)
 
-
+    def value_from_id(self, parameter_name, run_id):
+        try:
+            return run_id.split(f"{parameter_name}-")[1].split("-")[0]
+        except:
+            print(run_id)
+            
+    def row_from_id(self, run_id, index):
+        row = dict()
+        for par in index[:-1]:
+            row[par] = self.value_from_id(par, run_id)
+        row["params"] = run_id.split(row["model"])[1]
+        return pd.Series(row, index=index)
+            
     def where(self, **kwargs):
         new = dict()
-
+        
         for key in self.dict:
-            if not all((f"{param}-{kwargs[param]}" in key for param in kwargs)):
+            if not all((param not in key or f"{param}-{kwargs[param]}" in key for param in kwargs)):
                 continue
             new[key] = self.dict[key]
         return new
@@ -109,33 +131,104 @@ class Logger:
             plt.plot(self.dict[run_id]["loss_progress"].mean(axis=-1))
         elif kind == "acc":
             plt.plot(self.dict[run_id]["acc_progress"].mean(axis=-1))
+    
+    def report_(self, dic=None):
+        meds = self.report_medians(dic)
+        n_qs = self.report_nqs(dic)
+        return pd.merge(meds, n_qs,  how='inner')
 
-    def plot_QD(self, run_id=None):
+    
+    def report(self, dic=None):
+        if dic is None:
+            dic = self.dict
+        
+        columns = ["dataset", "norm", "model", "attack", "params", "median", "n_qs", "asr"]
+        df = pd.DataFrame(columns=columns)
+        
+        for run_id in dic:
+            step_norms = dic[run_id]["norm_progress"]
+            step_accs = dic[run_id]["acc_progress"]
+            qd = QD(step_norms, step_accs)
+            n_qs = n_qs_to_reach(0.1,qd)
+            mm = min_median(qd)
+            asr = attack_succes_rate(step_accs)
+
+            s = pd.concat([self.row_from_id(run_id, index=columns[:-3]), (pd.Series((mm, n_qs, asr)))])
+            s.name = run_id
+            s.index= columns
+            df = df.append(s)
+        return df    
+
+    def report_nqs(self, dic=None):
+        if dic is None:
+            dic = self.dict
+        
+        columns = ["dataset", "norm", "model", "attack", "params", "n_qs"]
+        df = pd.DataFrame(columns=columns)
+        
+        for run_id in dic:
+            n_qs = n_qs_to_reach(0.1, dic[run_id]["norm_progress"], dic[run_id]["acc_progress"])
+            df = df.append(self.row_from_id(run_id, index=columns[:-1]).
+                           append(pd.Series(mm, index=[columns[-1]])), ignore_index=True)
+        return df    
+        
+    def report_medians(self, dic=None):
+        if dic is None:
+            dic = self.dict
+        
+        columns = ["dataset", "norm", "model", "attack", "params", "median"]
+        df = pd.DataFrame(columns=columns)
+        
+        for run_id in dic:
+            mm = min_median(dic[run_id]["norm_progress"], dic[run_id]["acc_progress"])
+            df = df.append(self.row_from_id(run_id, index=columns[:-1]).
+                           append(pd.Series(mm, index=[columns[-1]])), ignore_index=True)
+            # print(df, self.row_from_id(run_id))
+            # df.iloc[-1]["median"] = mm
+        return df   
+            
+    def plot_QD(self, run_id=None, ax=None):
         # use default
         if run_id is None:
             run_id = self.run_id
 
-        qd = self.QD(self.dict[run_id]["norm_progress"], self.dict[run_id]["acc_progress"])
+        qd = QD(self.dict[run_id]["norm_progress"], self.dict[run_id]["acc_progress"])
 
-        plt.plot(qd)
+        if ax is None:
+            ax = plt.gca()
+        attack_name = self.value_from_id("attack", run_id)
+        ax.plot(qd, label=attack_name, color=COLORS[attack_name])
+        ax.legend(loc='upper left')
+        ax.set_xscale("log")
+   
+    def plot_QD_grid(self, where_settings=dict(), x_axis="model", y_axis="norm", aggregate="best", **kwargs):
+        dic = self.where(**where_settings)
+        comp = list(dic.keys())
+        
+        unique_y = list(sorted(set([self.value_from_id(y_axis, c) for c in comp])))
+        unique_x_per_y = [list(sorted(set([self.value_from_id(x_axis, c) for c in filter(lambda x: y in x, dic.keys())]))) for y in unique_y]
+        
+        if aggregate == "best":
+            # TODO select best hyperparams for each x,y pair
+            for c in comp:
+                pass
+            
+        fig, axs = plt.subplots(len(unique_y), max(map(len, unique_x_per_y)), sharey='none', sharex="row", **kwargs)
+        
+        # at least 2D
+        if len(unique_y) == 1:
+            axs = [axs]
+        
+        for c in comp:
+            x_val = self.value_from_id(x_axis, c)
+            y_val = self.value_from_id(y_axis, c)
+            
+            y_index = unique_y.index(y_val)
+            
 
-    def QD_at_step(self, step_norm, step_acc, clean_acc):
-        # print(step_norm)
-        # avoid inplace ops
-        step_norm_ = step_norm.copy()
-
-        step_norm_[step_acc==1] = np.inf
-        step_norm_[clean_acc==0] = 0
-        #assert step_acc[clean_acc==0].sum() == 0
-        # print(step_norm_)
-        return np.median(step_norm_)
-
-    def QD(self, step_norms, step_accs):
-        clean_acc = step_accs[0]
-        qd = list()
-        running_min = float("inf")
-        for step in range(len(step_norms)):
-            curr = self.QD_at_step(step_norms[step], step_accs[step], clean_acc)
-            running_min = min(running_min,curr)
-            qd.append(running_min)
-        return qd
+            
+            ax = axs[y_index][unique_x_per_y[y_index].index(x_val)]
+            self.plot_QD(c, ax=ax)
+            
+            ax.set_title(x_val)
+        plt.show()

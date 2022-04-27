@@ -22,7 +22,7 @@ def load_model_avg(dataset, norm, models_dir="models"):
 
 def load_model_msd(dataset, norm, models_dir="models"):
     model = PreActResNet18()
-    base_path = Path(__file__).resolve()
+    # base_path = Path(__file__).resolve()
     # model_dir = base_path.parent / 'pretrained' / 'MSD.pt'
     model_dir = f"{models_dir}/{dataset}/{norm}/MSD.pt"
     if not os.path.exists(model_dir):

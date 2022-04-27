@@ -51,6 +51,7 @@ class Sweeper:
             # create id
             run_id = "-".join(row.dropna().to_string(header=False).split())
 
+            # load from precomputed if possible
             if not recompute and self.logger.is_logged(run_id, logs_dir):
                 try:
                     self.logger.load(run_id, dir=logs_dir)
@@ -62,15 +63,18 @@ class Sweeper:
             # get device
             if device is None:
                 device = "cuda" if torch.cuda.is_available() else "cpu"
+            
+            try:
+                # run attack
+                self.logger.setup(run_id=run_id, n_samples=n_samples)
+                self.run(n_samples=n_samples, batch_size=batch_size, device=device, n_workers=n_workers,**row.to_dict())
 
-            # run attack
-            self.logger.setup(run_id=run_id, n_samples=n_samples)
-            # self.logger.setup(attack_name=row.attack, model_name=row.model, hyperparams="default")
-            self.run(n_samples=n_samples, batch_size=batch_size, device=device, n_workers=n_workers,**row.to_dict())
-
-            # save attack log to disk
-            self.logger.save(force=True)
-
+                # save attack log to disk
+                self.logger.save(force=True)
+            
+            except KeyError as e:
+                print(f"{row.model} not available.")
+                
             # print progress
             print(f"Done: {index+1}/{self.config_df.shape[0]}")
 
@@ -107,9 +111,9 @@ class Sweeper:
         model = model.to(device)
 
 
-        # tracked_model = PyTorchModelTracker(model, p=numeric_norm, logger=self.logger, loss_f=kwargs["loss_f"], track_acc=True)  # pytorch model
+        tracked_model = PyTorchModelTracker(model, p=numeric_norm, logger=self.logger, loss_f=kwargs["loss_f"], track_acc=True)  # pytorch model
 
-        tracked_model = PyTorchModelTracker(model, p=numeric_norm, logger=self.logger, loss_f=None, track_acc=False)  # pytorch model
+        # tracked_model = PyTorchModelTracker(model, p=numeric_norm, logger=self.logger, loss_f=None, track_acc=False)  # pytorch model
 
         # automatic batch size
         if batch_size is None:
