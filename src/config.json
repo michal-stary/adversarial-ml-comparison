@@ -3,7 +3,7 @@
     "dataset": ["CIFAR10"],
     "attack": ["fmn"],
     "model":  ["Gowal2021Improving_R18_ddpm_100m", "Rade2021Helper_R18_extra", "Engstrom2019Robustness_linf", 
-               "Rebuffi2021Fixing_70_16_cutmix_extra", "Gowal2020Uncovering_70_16_extra", "Gowal2021Improving_70_16_ddpm_100m",
+               "Rebuffi2021Fixing_70_16_cutmix_extra_linf", "Gowal2020Uncovering_70_16_extra", "Gowal2021Improving_70_16_ddpm_100m",
               "Kang2021Stable"],
     "norm": ["Linf"],
     "steps": [100,1000],
@@ -18,7 +18,7 @@
     "dataset": ["CIFAR10"],
     "attack": ["apgd"],
     "model":  ["Gowal2021Improving_R18_ddpm_100m", "Rade2021Helper_R18_extra", "Engstrom2019Robustness_linf", 
-               "Rebuffi2021Fixing_70_16_cutmix_extra", "Gowal2020Uncovering_70_16_extra", "Gowal2021Improving_70_16_ddpm_100m",
+               "Rebuffi2021Fixing_70_16_cutmix_extra_linf", "Gowal2020Uncovering_70_16_extra", "Gowal2021Improving_70_16_ddpm_100m",
               "Kang2021Stable"],
     "norm": ["Linf"],
     "n_iter": [100],
@@ -39,7 +39,7 @@
     "dataset": ["CIFAR10"],
     "attack": ["fmn"],
     "model":  ["Rade2021Helper_R18_ddpm", "Rebuffi2021Fixing_R18_cutmix_ddpm", "Engstrom2019Robustness_l2", 
-               "Rebuffi2021Fixing_70_16_cutmix_extra", "Gowal2020Uncovering_extra", "Rebuffi2021Fixing_70_16_cutmix_ddpm"],
+               "Rebuffi2021Fixing_70_16_cutmix_extra_l2", "Gowal2020Uncovering_extra", "Rebuffi2021Fixing_70_16_cutmix_ddpm"],
     "norm": ["L2"],
     "loss_f": ["DL"],
     "steps": [100, 1000],
@@ -53,7 +53,7 @@
     "dataset": ["CIFAR10"],
     "attack": ["alma"],
     "model":  ["Rebuffi2021Fixing_R18_cutmix_ddpm", "Rade2021Helper_R18_ddpm", "Engstrom2019Robustness_l2", 
-              "Rebuffi2021Fixing_70_16_cutmix_extra", "Gowal2020Uncovering_extra", "Rebuffi2021Fixing_70_16_cutmix_ddpm"],
+              "Rebuffi2021Fixing_70_16_cutmix_extra_l2", "Gowal2020Uncovering_extra", "Rebuffi2021Fixing_70_16_cutmix_ddpm"],
     "norm": ["L2"],
     "loss_f": ["DL"],
     "α": [0.9],
@@ -63,13 +63,34 @@
     "dataset": ["CIFAR10"],
     "attack": ["alma"],
     "model":  ["Rebuffi2021Fixing_R18_cutmix_ddpm", "Rade2021Helper_R18_ddpm", "Engstrom2019Robustness_l2",
-              "Rebuffi2021Fixing_70_16_cutmix_extra", "Gowal2020Uncovering_extra", "Rebuffi2021Fixing_70_16_cutmix_ddpm"],
+              "Rebuffi2021Fixing_70_16_cutmix_extra_l2", "Gowal2020Uncovering_extra", "Rebuffi2021Fixing_70_16_cutmix_ddpm"],
     "norm": ["L2"],
     "loss_f": ["DL"],
     "α": [0.5],
     "num_steps": [100]
   },
-
+    {
+    "dataset": ["CIFAR10"],
+    "attack": ["ddn"],
+    "model":  ["Rebuffi2021Fixing_R18_cutmix_ddpm", "Rade2021Helper_R18_ddpm", "Engstrom2019Robustness_l2", 
+              "Rebuffi2021Fixing_70_16_cutmix_extra_l2", "Gowal2020Uncovering_extra", "Rebuffi2021Fixing_70_16_cutmix_ddpm"],
+    "norm": ["L2"],
+    "loss_f": ["DL"],
+    "γ": [0.05],
+    "init_norm": [0.03, 0.1, 0.3, 1, 3],
+    "steps": [1000, 100]
+  },
+    {
+    "dataset": ["CIFAR10"],
+    "attack": ["apgd"],
+    "model":  ["Rebuffi2021Fixing_R18_cutmix_ddpm", "Rade2021Helper_R18_ddpm", "Engstrom2019Robustness_l2", 
+              "Rebuffi2021Fixing_70_16_cutmix_extra_l2", "Gowal2020Uncovering_extra", "Rebuffi2021Fixing_70_16_cutmix_ddpm"],
+    "norm": ["L2"],
+    "loss_f": ["DL"],
+    "n_iter": [100],
+    "binary_search_steps": [10],
+    "max_eps": [0.5, 1]
+  },
 
 
 
