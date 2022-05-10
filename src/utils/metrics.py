@@ -10,7 +10,7 @@ import numpy as np
     
 #     return np.median(step_norm_)
 
-def adversify(step_norm,step_acc, clean_acc):
+def adversify(step_norm, step_acc, clean_acc):
     step_norm_ = step_norm.copy()
     step_norm_[step_acc==1] = np.inf
     step_norm_[clean_acc==0] = 0

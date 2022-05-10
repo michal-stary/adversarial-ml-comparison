@@ -6,15 +6,16 @@ import matplotlib.pyplot as plt
 import pickle
 import os
 import time
-from utils.metrics import QD, SE, min_median, n_qs_to_reach, attack_succes_rate, min_norms
+from copy import deepcopy
+from utils.metrics import QD, SE, min_median, n_qs_to_reach, attack_succes_rate, min_norms, adversify
 from scores import THRESHOLDS, SCORES
-
 
 COLORS = {
     "fmn": "red",
     "alma": "blue",
     "apgd": "green",
     "ddn": "black",
+    "ensemble": "yellow",
     
     "0.05": "red",
     "0.03": "green",
@@ -141,13 +142,14 @@ class Logger:
         # get the real number of forwards
         if run_id in self.dict:
             return len(self.dict[run_id]["norm_progress"])
-        
-        # estimate
-        attack_name = self.value_from_id("attack", run_id)
-        if attack_name == "fmn":
-            return self.value_from_id("steps", run_id)
-        if attack_name == "alms":
-            return self.value_from_id("steps", run_id)
+
+        raise NotImplementedError("Not ready for not runned experiments")
+        # # estimate
+        # attack_name = self.value_from_id("attack", run_id)
+        # if attack_name == "fmn":
+        #     return self.value_from_id("steps", run_id)
+        # if attack_name == "alma":
+        #     return self.value_from_id("steps", run_id)
     
     def plot_progress(self, kind="loss", run_id=None):
 
@@ -324,3 +326,31 @@ class Logger:
             
             ax.set_title(x_val)
         plt.show()
+        
+    def merge(self, name, run_ids, strategy="best"):
+        if strategy != "best":
+            raise NotImplementedError
+        
+        dic = deepcopy(self.dict[run_ids[0]])
+        for run_id in run_ids:
+            clean_acc = dic["acc_progress"][0]
+            
+            # print(run_id, run_ids[0])
+            # print(clean_acc == self.dict[run_id]["acc_progress"][0])
+            # all clean accuracies should be the same
+            assert (clean_acc == self.dict[run_id]["acc_progress"][0]).all()
+            
+            
+            # TODO - think through the behaviour for slightly different number of steps 
+            
+            for step in range(min(len(dic["norm_progress"]), len(self.dict[run_id]["norm_progress"]))):
+                step_norm1 = adversify(dic["norm_progress"][step], dic["acc_progress"][step], clean_acc)
+                step_norm2 = adversify(self.dict[run_id]["norm_progress"][step], self.dict[run_id]["acc_progress"][step], clean_acc)
+            
+                dic["norm_progress"][step] = np.amin(np.stack([step_norm1, step_norm2]), axis=0)
+                dic["acc_progress"][step] = np.amin(np.stack([dic["acc_progress"][step], self.dict[run_id]["acc_progress"][step]]), axis=0)
+        
+        self.dict[name] = dic
+        return dic
+        
+        

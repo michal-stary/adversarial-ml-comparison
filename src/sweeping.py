@@ -147,6 +147,9 @@ class Sweeper:
 
             tracked_model.setup(images, labels)
 
+            # run one clean run to get the clean accuracy
+            tracked_model(images)
+            
             # run attack
             results = attack_f(tracked_model, images, labels, **norm_dict, **hyperparams)
             tracked_model.log()

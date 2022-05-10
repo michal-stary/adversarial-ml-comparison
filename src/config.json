@@ -57,6 +57,7 @@
     "norm": ["L2"],
     "loss_f": ["DL"],
     "α": [0.9],
+    "init_lr_distance": [0.1],
     "num_steps": [1000]
   },
     {
@@ -67,6 +68,7 @@
     "norm": ["L2"],
     "loss_f": ["DL"],
     "α": [0.5],
+    "init_lr_distance": [0.1],
     "num_steps": [100]
   },
     {
@@ -120,6 +122,7 @@
     "norm": ["L1"],
     "loss_f": ["DL"],
     "α": [0.9],
+    "init_lr_distance": [0.5],
     "num_steps": [1000]
   },
     {
@@ -131,6 +134,7 @@
     "norm": ["L1"],
     "loss_f": ["DL"],
     "α": [0.5],
+    "init_lr_distance": [0.5],
     "num_steps": [100]
   },
 
