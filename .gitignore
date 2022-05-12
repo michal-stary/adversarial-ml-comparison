@@ -4,6 +4,9 @@ fmn_eval
 src/models
 src/data
 src/logs
+src/misc
+src/logs_backup
+misc
 
 run_lab
 run_lab_screen

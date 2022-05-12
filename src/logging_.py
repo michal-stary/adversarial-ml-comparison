@@ -16,6 +16,9 @@ COLORS = {
     "apgd": "green",
     "ddn": "black",
     "ensemble": "yellow",
+    "pdgd": "purple",
+    "pdpgd": "purple",
+
     
     "0.05": "red",
     "0.03": "green",
@@ -134,7 +137,7 @@ class Logger:
                 print(f"{run_id} already loaded.")
 
     def is_logged(self, run_id, dir="logs"):
-        path = f"{dir}/{run_id}"
+        path = os.path.join(dir, run_id)
         return os.path.exists(path)
 
     

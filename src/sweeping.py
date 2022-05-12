@@ -48,9 +48,17 @@ class Sweeper:
         for index, row in self.config_df.iterrows():
             row = row.dropna()
 
-            # create id
-            run_id = "-".join(row.dropna().to_string(header=False).split())
-
+         
+            def id_from_row(row):
+                # create id   
+                pre = "-".join(row.iloc[:4].to_string(header=False).split()) 
+                
+                rest = "-".join(row.iloc[4:].sort_index().to_string(header=False).split())
+                return pre + "-" + rest
+            
+            
+            run_id = id_from_row(row)
+            print(run_id)
             # load from precomputed if possible
             if not recompute and self.logger.is_logged(run_id, logs_dir):
                 try:
