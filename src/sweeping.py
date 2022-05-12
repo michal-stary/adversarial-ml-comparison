@@ -2,7 +2,7 @@ import json
 import pandas as pd
 from sklearn.model_selection._search import ParameterGrid
 from logging_ import Logger
-from adv_lib.attacks import fmn, alma, apgd, ddn
+from adv_lib.attacks import fmn, alma, apgd, ddn, pdgd, pdpgd
 from adv_lib.attacks.auto_pgd import minimal_apgd
 #from robustbench.utils import load_model
 from tracking import PyTorchModelTracker
@@ -88,6 +88,10 @@ class Sweeper:
                 attack_f = minimal_apgd
             elif kwargs["attack"] == "ddn":
                 attack_f = ddn
+            elif kwargs["attack"] == "pdpgd":
+                attack_f = pdpgd
+            elif kwargs["attack"] == "pdgd":
+                attack_f = pdgd
         else:
             raise Warning()
 
@@ -96,11 +100,11 @@ class Sweeper:
         if "norm" in kwargs:
             numerical_part = kwargs["norm"][1:]
             numeric_norm = float(numerical_part)
-            if attack_f == fmn or attack_f == minimal_apgd:
+            if attack_f in [fmn, minimal_apgd, pdpgd]:
                 norm_dict = {"norm":numeric_norm}
             elif attack_f == alma:
                 norm_dict = {"distance": kwargs["norm"].lower()}
-            elif attack_f == ddn:
+            elif attack_f in [ddn, pdgd]:
                 norm_dict = {}
         else:
             raise RuntimeError(f"Norm not present in {kwargs}")
