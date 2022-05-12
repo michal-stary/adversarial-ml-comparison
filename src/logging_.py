@@ -122,7 +122,7 @@ class Logger:
             raise RuntimeWarning("Record already loaded in dict")
 
         for entry in os.scandir(f"{dir}/{run_id}"):
-            self.dict[run_id][entry.name[:-4]] = np.load(f"{dir}/{run_id}/{entry.name}")
+            self.dict[run_id][entry.name[:-4]] = np.load(f"{dir}/{run_id}/{entry.name}",allow_pickle=True)
 
     def load_all(self, force=False, dir="logs"):
         for run_id in os.listdir(dir):
