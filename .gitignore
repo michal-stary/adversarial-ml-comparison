@@ -3,10 +3,11 @@ adv_env
 fmn_eval
 src/models
 src/data
-src/logs
+src/logs*
 src/misc
 src/logs_backup
 misc
+src/Untitled*
 
 run_lab
 run_lab_screen
