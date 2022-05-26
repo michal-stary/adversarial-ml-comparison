@@ -1,0 +1,59 @@
+[
+    {
+    "dataset": ["CIFAR10"],
+    "attack": ["fmn"],
+    "model":  ["Gowal2021Improving_R18_ddpm_100m", "Rade2021Helper_R18_extra", "Engstrom2019Robustness_linf", 
+               "Rebuffi2021Fixing_70_16_cutmix_extra_linf", "Gowal2020Uncovering_70_16_extra", "Gowal2021Improving_70_16_ddpm_100m", "Kang2021Stable"],
+    "norm": ["Linf"],
+    "loss_f": ["DL"],
+    "init_aa_eps": [0.04705882352],
+    "steps": [100,1000],
+    "α_init": [10],
+    "α_final": [0.0001],
+    "γ_init": [0.05],
+    "γ_final": [0.001],
+    "binary_search_steps": [10]
+  },
+        {
+    "dataset": ["CIFAR10"],
+    "attack": ["fmn"],
+    "model":  ["Rade2021Helper_R18_ddpm", "Rebuffi2021Fixing_R18_cutmix_ddpm", "Engstrom2019Robustness_l2", 
+               "Rebuffi2021Fixing_70_16_cutmix_extra_l2", "Gowal2020Uncovering_extra", "Rebuffi2021Fixing_70_16_cutmix_ddpm"],
+    "norm": ["L2"],
+    "loss_f": ["DL"],
+    "init_aa_eps": [0.75],
+    "steps": [100,1000],
+    "α_init": [5],
+    "α_final": [0.0001],
+    "γ_init": [0.05],
+    "γ_final": [0.001],
+    "binary_search_steps": [10]
+  },
+    {
+    "dataset": ["CIFAR10"],
+    "attack": ["fmn"],
+    "model":  ["Engstrom2019Robustness_linf", "Engstrom2019Robustness_l2", "Augustin2020Adversarial_34_10_extra", 
+               "Rice2020Overfitting", "Xiao2020Enhancing",
+              "Maini2020MultipleMSD", "Maini2020MultipleAVG"],
+    "norm": ["L1"],
+    "loss_f": ["DL"],
+    "init_aa_eps": [12],
+    "steps": [100,1000],
+    "α_init": [1],
+    "α_final": [0.0001],
+    "γ_init": [0.05],
+    "γ_final": [0.001],
+    "binary_search_steps": [10]
+  }
+    
+    
+    
+    
+    
+    
+    
+    
+    
+
+    
+]

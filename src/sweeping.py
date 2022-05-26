@@ -11,7 +11,7 @@ import torch
 from utils.data_utils import create_loaders
 from tqdm import tqdm
 from zoo import load_model
-from pytorch_lightning.trainer import Trainer
+from autoattack_wrapper import aa
 
 class Sweeper:
     @classmethod
@@ -39,12 +39,12 @@ class Sweeper:
 
     def __init__(self, df, log_dir="logs", model_dir="models", data_dir="data"):
         self.config_df = df
-        self.logger = Logger()
+        self.logger = Logger(logs_dir=log_dir)
         self.model_dir = model_dir
         self.data_dir = data_dir
 
 
-    def sweep(self, n_samples=100, recompute=False, logs_dir="logs", device=None, batch_size=None, n_workers=0):
+    def sweep(self, n_samples=100, recompute=False, device=None, batch_size=None, n_workers=0):
         for index, row in self.config_df.iterrows():
             row = row.dropna()
 
@@ -60,9 +60,9 @@ class Sweeper:
             run_id = id_from_row(row)
             print(run_id)
             # load from precomputed if possible
-            if not recompute and self.logger.is_logged(run_id, logs_dir):
+            if not recompute and self.logger.is_logged(run_id):
                 try:
-                    self.logger.load(run_id, dir=logs_dir)
+                    self.logger.load(run_id)
                 except Warning:
                     pass
                 continue
@@ -81,7 +81,8 @@ class Sweeper:
                 self.logger.save(force=True)
             
             except KeyError as e:
-                print(f"{row.model} not available.")
+                print(e)
+                print(f"{run_id} not available.")
                 
             # print progress
             print(f"Done: {index+1}/{self.config_df.shape[0]}")
@@ -100,6 +101,8 @@ class Sweeper:
                 attack_f = pdpgd
             elif kwargs["attack"] == "pdgd":
                 attack_f = pdgd
+            elif kwargs["attack"] == "aa":
+                attack_f = aa
         else:
             raise Warning()
 
@@ -114,9 +117,22 @@ class Sweeper:
                 norm_dict = {"distance": kwargs["norm"].lower()}
             elif attack_f in [ddn, pdgd]:
                 norm_dict = {}
+            elif attack_f == aa:
+                norm_dict = {"norm":kwargs["norm"]}
         else:
             raise RuntimeError(f"Norm not present in {kwargs}")
-
+        
+        
+        
+        if "init_aa_eps" in kwargs:
+            aa_run_id = f'dataset-{kwargs["dataset"]}-norm-{kwargs["norm"]}-attack-aa-model-{kwargs["model"]}-eps-{round(kwargs["init_aa_eps"], 6)}-loss_f-DL'
+#             print(self.logger.dict[aa_run_id])
+            print(aa_run_id)
+            initial = torch.tensor(self.logger.dict[aa_run_id]["results"][0]).to(device)
+#             print(initial.shape)
+            kwargs["starting_points"] = initial        
+            kwargs.pop("init_aa_eps")
+            
         # load model
         if "model" in kwargs and "dataset" in kwargs and "norm" in kwargs:
             model = load_model(model_name=kwargs["model"], dataset=kwargs["dataset"].lower(),
@@ -163,7 +179,16 @@ class Sweeper:
             tracked_model(images)
             
             # run attack
-            results = attack_f(tracked_model, images, labels, **norm_dict, **hyperparams)
+            if attack_f == aa:
+                results = attack_f(model, images, labels, **norm_dict, **hyperparams)
+                
+                # track the results stats
+                tracked_model(results)
+            else:
+                results = attack_f(tracked_model, images, labels, **norm_dict, **hyperparams)
+                
+            self.logger.concat_batch_log("results", [results])
+            
             tracked_model.log()
 
 
