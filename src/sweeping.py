@@ -12,6 +12,7 @@ from utils.data_utils import create_loaders
 from tqdm import tqdm
 from zoo import load_model
 from autoattack_wrapper import aa
+from fast_minimum_norm2 import fmn2
 
 class Sweeper:
     @classmethod
@@ -103,6 +104,9 @@ class Sweeper:
                 attack_f = pdgd
             elif kwargs["attack"] == "aa":
                 attack_f = aa
+            elif kwargs["attack"] == "fmn2":
+                attack_f = fmn2
+
         else:
             raise Warning()
 
@@ -111,7 +115,7 @@ class Sweeper:
         if "norm" in kwargs:
             numerical_part = kwargs["norm"][1:]
             numeric_norm = float(numerical_part)
-            if attack_f in [fmn, minimal_apgd, pdpgd]:
+            if attack_f in [fmn, minimal_apgd, pdpgd, fmn2]:
                 norm_dict = {"norm":numeric_norm}
             elif attack_f == alma:
                 norm_dict = {"distance": kwargs["norm"].lower()}

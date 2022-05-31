@@ -1,0 +1,16 @@
+[
+  {
+    "dataset": ["CIFAR10"],
+    "attack": ["fmn"],
+    "model":  ["Maini2020MultipleAVG"],
+    "norm": ["Linf"],
+    "steps": [50],
+    "loss_f": ["DL"],
+    "α_init": [1.0],
+    "α_final": [null],
+    "γ_init": [0.05],
+    "γ_final": [0.001],
+    "binary_search_steps": [10]
+  }
+]
+
