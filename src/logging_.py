@@ -26,6 +26,11 @@ COLORS = {
     "pdpgd": "purple",
     "aa": "brown",
     "afm": "blue",
+    "fmn_t": "red",
+    "alma_t": "blue",
+    "fmn_all": "orange",
+    "alma_all": "purple",
+    
     
     "0.05": "red",
     "0.03": "green",
@@ -341,12 +346,14 @@ class Logger:
         ax.legend(loc='upper left')
         ax.set_xscale("log")
    
-    def plot_targeted_class(self, run_id, ax=None, attack="fmn", sumdic=None, *args, **kwargs):
+    def plot_targeted_class(self, run_id, ax=None, attack="fmn", sumdic=None, selected=None, *args, **kwargs):
 #         if self.value_from_id("attack", run_id) != attack:
 #             return
         # only long runs
         if self.get_n_steps(run_id) < 1000:
             return
+        
+        # only one plot per ax
         assert not ax.collections
         
         all_window = []
@@ -373,9 +380,13 @@ class Logger:
 #             print(tar[0], tar_window1[0])
         def argsort(seq):
             return sorted(range(len(seq)), key=seq.__getitem__)
+        
         argsorted = argsort(all_window)
-#         print(len(argsorted))
-#         all_window = sorted(all_window)    
+        
+        # keep only selected indeces
+        if selected is not None:
+            argsorted = [x for x in argsorted if selected[self.value_from_id("norm", run_id)][self.value_from_id("model", run_id)][x]]
+
         all_window = np.array(all_window)[argsorted]
         all_init = np.array(all_init)[argsorted]
         y=np.repeat(np.arange(len(all_window))/30, len(all_window[0]))
@@ -486,7 +497,10 @@ class Logger:
             assert (self.dict[run_ids[0]]["labels_progress"] == self.dict[run_id]["labels_progress"]).all()
 #             assert (self.dict[run_ids[0]]["pred_progress"] == self.dict[run_id]["pred_progress"]).all()
 #             assert (self.dict[run_ids[0]]["acc_progress"][0] == self.dict[run_id]["acc_progress"][0]).all()
-            assert (clean_acc == self.dict[run_id]["acc_progress"][0]).all()
+            
+
+            if not (clean_acc == self.dict[run_id]["acc_progress"][0]).all():
+                raise RuntimeError(run_id)
                         
             for step in range(len(dic["norm_progress"])):
                 step_norm1 = adversify(dic["norm_progress"][step], dic["acc_progress"][step], clean_acc)
@@ -579,8 +593,7 @@ class Logger:
         ax.set_ylim(bottom= alm, top=al)
         ax.set_xlim(left = alm, right=al)
         
-#         ax.text(5, 5, "u", fontdict=None)
-       
+        return norm_a > norm_b#np.nonzero(norm_a > norm_b)
         
     def plot_compare_grid(self, sumdic, a="fmn", b="apgd", x_axis="model", y_axis="norm", aggregate="best",\
                           sharex='none', max_count_x=10, size_f=None, simple=None, **kwargs):
@@ -608,8 +621,11 @@ class Logger:
         if len(unique_y) == 1:
             axs = [axs]
                 
+        # gather critical indices
+        critical = dict()
         
         for i, y_val in enumerate(unique_y):
+            critical[y_val] = dict()
             for j, x_val in enumerate(unique_x_per_y[i]):
                             
                 ax = axs[i][j]
@@ -622,7 +638,7 @@ class Logger:
                 
                 assert len(a_indcs) == 1 and len(b_indcs) == 1
             
-                self.plot_comparison(sumdic[y_val][x_val]["norms"][a_indcs[-1]], 
+                critical[y_val][x_val] = self.plot_comparison(sumdic[y_val][x_val]["norms"][a_indcs[-1]], 
                                      sumdic[y_val][x_val]["norms"][b_indcs[-1]], 
                                      sumdic[y_val][x_val]["classes"][a_indcs[-1]], 
                                      sumdic[y_val][x_val]["classes"][b_indcs[-1]], 
@@ -640,7 +656,7 @@ class Logger:
                 elif a == "auto_all":
                     ax.axhline(y = THRESHOLDS[y_val][0], color = 'grey', linewidth=0.3)
         plt.show()    
-        
+        return critical
         
 #         for c in comp:
 #             x_val = self.value_from_id(x_axis, c)
@@ -660,18 +676,19 @@ class Logger:
 #         plt.show()    
 
 
-    def plot_comparison_all(self, dic, ax, same=None, initial=None):
+    def plot_comparison_all(self, dic, ax, selected=None, initial=None):
 #         if size_f is None:
 #             size = lambda classes_a, classes_b: [1 if classes_a[i] == classes_b[i] else 500 for i in range(len(classes_a))]
 #         else:
 #             size = size_f
-        if same == "skip":
+        if selected == "skip_same":
             mask = dic["classes"].max(axis=0) != dic["classes"].min(axis=0)
-        elif same == "only":
+        elif selected == "only_same":
             mask = dic["classes"].max(axis=0) == dic["classes"].min(axis=0)
-        else:
+        elif selected is None: 
             mask = np.zeros_like(dic["classes"][0]) == 0
-            
+        else:
+            mask = selected
         norms =dic["norms"][:,mask]
         classes =dic["classes"][:,mask]
         second_clean = np.argsort(dic["clean_preds"][mask,:], axis=1)[:,-2]
@@ -714,7 +731,7 @@ class Logger:
         
     
     def plot_compare_all_grid(self, sumdic, x_axis="model", y_axis="norm", aggregate="best",\
-                          sharex='none', max_count_x=10, same=None, initial=None, **kwargs):
+                          sharex='none', max_count_x=10, initial=None, selected=None, **kwargs):
         
         unique_y = list(sorted(sumdic.keys()))
         unique_x_per_y = [list(sorted([*sumdic[y].keys()])) for y in unique_y]
@@ -751,8 +768,8 @@ class Logger:
 #                 if not a_indcs or not b_indcs:
 #                     continue
 #                 assert len(a_indcs) == 1 and len(b_indcs) == 1
-            
-                self.plot_comparison_all(sumdic[y_val][x_val], ax, same=same, initial=initial)
+                sel = selected[y_val][x_val] if isinstance(selected, dict) else selected
+                self.plot_comparison_all(sumdic[y_val][x_val], ax, initial=initial, selected=sel)
                 ax.set_title(x_val)
     
         plt.show()    

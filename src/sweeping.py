@@ -89,9 +89,9 @@ class Sweeper:
 
     def run(self, n_samples=100, batch_size=20, n_workers=0, device="cpu", **kwargs):
         if "attack" in kwargs:
-            if kwargs["attack"] == "fmn":
+            if kwargs["attack"] in ["fmn", "fmn_t"]:
                 attack_f = fmn
-            elif kwargs["attack"] == "alma":
+            elif kwargs["attack"] in ["alma", "alma_t"]:
                 attack_f = alma
             elif kwargs["attack"] == "apgd":
                 attack_f = minimal_apgd
@@ -185,7 +185,14 @@ class Sweeper:
                 # track the results stats
                 tracked_model(results)
             else:
-                results = attack_f(tracked_model, images, labels, **norm_dict, **hyperparams)
+                # run targeted attack 
+                if "target" in hyperparams:
+                    hyperparams["targeted"]=True
+                    targets = torch.ones_like(labels)*hyperparams.pop("target")
+                    
+                    results = attack_f(tracked_model, images, targets, **norm_dict, **hyperparams)
+                else:    
+                    results = attack_f(tracked_model, images, labels, **norm_dict, **hyperparams)
                 
             self.logger.concat_batch_log("results", [results])
             
