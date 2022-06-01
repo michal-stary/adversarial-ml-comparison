@@ -30,7 +30,7 @@ COLORS = {
     "alma_t": "blue",
     "fmn_all": "orange",
     "alma_all": "purple",
-    
+    "fmn2": "pink",
     
     "0.05": "red",
     "0.03": "green",

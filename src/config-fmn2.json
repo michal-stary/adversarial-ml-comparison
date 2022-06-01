@@ -48,7 +48,7 @@
     "model":  ["Engstrom2019Robustness_l2", "Engstrom2019Robustness_linf", "Augustin2020Adversarial_34_10_extra", 
                "Rice2020Overfitting",  "Xiao2020Enhancing",
               "Maini2020MultipleMSD", "Maini2020MultipleAVG"],
-    "norm": ["L1"],
+    "norm": ["L2"],
     "loss_f": ["DL"],
     "steps": [100],
     "α_init": [1,5,10],

@@ -81,7 +81,7 @@ def fmn2(model: nn.Module,
         starting_points: Optional[Tensor] = None,
         binary_search_steps: int = 10,
         line_search_steps: int = 10,
-        top_explore: int = 10) -> Tensor:
+        top_explore: int = 3) -> Tensor:
     """
     Fast Minimum-Norm attack from https://arxiv.org/abs/2102.12827.
 
@@ -139,22 +139,6 @@ def fmn2(model: nn.Module,
 
     ## use linesearch to get the starting points
 
-    δ = torch.zeros_like(inputs)
-    δ.requires_grad_(True)
-
-    # get initial gradient
-    adv_inputs = inputs + δ
-    logits = model(adv_inputs)
-
-    # skip correct class
-    top_explore = min(top_explore, logits.shape[1]-1)
-
-    # get top k class indices
-    # TODO - vectorize!
-    for i in range(len(logits)):
-        logits[i][labels[i]] = -torch.inf
-    class_indcs = torch.argsort(logits, dim=1, descending=True)[:, :top_explore]
-
     def boundary_search(model: nn.Module,
                         inputs: Tensor,
                         c_inds: Tensor,
@@ -166,34 +150,63 @@ def fmn2(model: nn.Module,
         largest_nadv = torch.zeros_like(inputs, device=device)
         ε = torch.ones(batch_size, device=device) * .5
 
+        smallest_adv_distance = torch.ones_like(distance_to_boundary) * torch.inf
+        largest_nadv_distance = torch.zeros_like(distance_to_boundary)
+
+        adv_found = torch.ones_like(distance_to_boundary) == 0
+
         for step in range(steps):
-            # TODO - how to calculate delta?
-            # TODO - rewrite vectorised
-            δ = direction
-            for i in range(len(distance_to_boundary)):
-                δ[i] *= distance_to_boundary[i]
+            δ = direction.clone()
+            δ *= batch_view(distance_to_boundary)
 
             # get the points
             points = inputs + δ
 
             # TODO think through if model goes into other adversarial class
-            is_adv = model(points).argmax(dim=1) == c_inds
-            print(is_adv)
-            smallest_adv[is_adv] = δ[is_adv]
-            largest_nadv[~is_adv] = δ[~is_adv]
+            pred = model(points).argmax(dim=1)
+            is_adv = pred == c_inds
+
+            # update points
+            is_smaller = distance_to_boundary < smallest_adv_distance
+            is_larger  = distance_to_boundary > largest_nadv_distance
+            smallest_adv = smallest_adv.where(batch_view(~is_adv | ~is_smaller), δ)
+            largest_nadv = largest_nadv.where(batch_view(is_adv | ~is_larger), δ)
+
+            # update distances
+            smallest_adv_distance = smallest_adv_distance.where(~is_adv | ~is_smaller,  distance_to_boundary)
+            largest_nadv_distance = largest_nadv_distance.where(is_adv | ~is_larger,  distance_to_boundary)
+            adv_found |= is_adv
 
             # line search
-            distance_to_boundary[~is_adv] *= 2
+            distance_to_boundary[~adv_found] *= 2
 
-            #binary search
-            distance_to_boundary[is_adv] = mid_point(x0=largest_nadv[is_adv], x1=smallest_adv[is_adv], ε=ε[is_adv]).flatten(1).norm(p=norm, dim=1)
+            # binary search
+            # TODO - correct the epsilons
+            # TODO - remove useless computation of midpoints for not adv points
+            distance_to_boundary = distance_to_boundary.where(~adv_found, mid_point(x0=largest_nadv, x1=smallest_adv, ε=ε).flatten(1).norm(p=norm, dim=1))
 
-        return distance_to_boundary, smallest_adv
+        return smallest_adv_distance, smallest_adv
+
+    δ = torch.zeros_like(inputs)
+    δ.requires_grad_(True)
+
+    # get initial predictions
+    adv_inputs = inputs + δ
+    logits = model(adv_inputs)
+
+    # skip correct class
+    top_explore = min(top_explore, logits.shape[1]-1)
+
+    # get top k classes indices (except the correct one)
+    logits_ = logits.clone()
+    logits_[torch.arange(batch_size), labels] = -torch.inf
+    class_indcs = torch.argsort(logits_, dim=1, descending=True)[:, :top_explore]
 
     distance_to_boundaries = []
     smallest_advs = []
     print(class_indcs)
     for c_inds in class_indcs.T:
+        print("ah", c_inds)
         # logit diff to the c_inds
         labels_infhot = torch.zeros_like(logits).scatter_(1, c_inds.unsqueeze(1), float('inf'))
         logit_diff_func = partial(difference_of_logits, labels=c_inds, labels_infhot=labels_infhot)
@@ -201,15 +214,14 @@ def fmn2(model: nn.Module,
 
         # check if this make sense (maybe should be -1)
         loss = logit_diffs
-
+        print(loss, "l")
         δ_grad = grad(loss.sum(), δ, only_inputs=True, retain_graph=True)[0]
 
         # initial linear approximation of distance to the boundary
         distance_to_boundary = loss.detach().abs() / δ_grad.flatten(1).norm(p=dual, dim=1).clamp_(min=1e-12)
 
-        # TODO how to normalize grad to have unit lenght?
-        for i in range(len(δ_grad)):
-            δ_grad[i]/= δ_grad[i].flatten(0).norm(p=norm, dim=0)
+        # normalize tu unit length
+        δ_grad /= batch_view(δ_grad.flatten(1).norm(p=norm, dim=1))
 
         print(distance_to_boundary, "init")
         # do a boundary search in δ_grad direction for each points
@@ -217,23 +229,24 @@ def fmn2(model: nn.Module,
 
         distance_to_boundaries.append(distance_to_boundary)
         smallest_advs.append(smallest_adv)
-        print(distance_to_boundary)
+        print(distance_to_boundary, "refined")
 
-    distance_to_boundaries = torch.stack(distance_to_boundaries)
-    smallest_advs = torch.stack(smallest_advs)
+    distance_to_boundaries = torch.stack(distance_to_boundaries).T
+    smallest_advs = torch.swapaxes(torch.stack(smallest_advs), 0, 1)
 
     best_indc = torch.argmin(distance_to_boundaries, dim=1, keepdim=True)
-    best_classes = torch.gather(c_inds, 1, best_indc)
-
+    best_classes = torch.gather(class_indcs, 1, best_indc)
+    best_distances = torch.gather(distance_to_boundaries, 1, best_indc)
 
     # HACK TO REUSE THE CODE FOR ADV INIT in origFMN
-    starting_points = inputs + torch.gather(smallest_advs, 1, best_indc)
+    # add either the points found by search or nothing is search was not succesful in any class
+    starting_points = inputs + smallest_advs[torch.arange(batch_size), best_indc.squeeze(), :].where(batch_view(best_distances) != torch.inf, torch.zeros_like(inputs))
     ε = torch.ones(batch_size, device=device)
     binary_search_steps = 0
     # /HACK END
 
     # see what class has the real closest boundary
-    print(best_indc)
+    print(best_indc, best_distances, best_classes)
 
 
     # If starting_points is provided, search for the boundary
