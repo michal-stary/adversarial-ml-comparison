@@ -183,8 +183,8 @@ def fmn2(model: nn.Module,
             # binary search
             # TODO - correct the epsilons
             # TODO - remove useless computation of midpoints for not adv points
-            distance_to_boundary = distance_to_boundary.where(~adv_found, mid_point(x0=largest_nadv, x1=smallest_adv, ε=ε).flatten(1).norm(p=norm, dim=1))
-
+            # distance_to_boundary = distance_to_boundary.where(~adv_found, mid_point(x0=largest_nadv, x1=smallest_adv, ε=ε).flatten(1).norm(p=norm, dim=1))
+            distance_to_boundary = distance_to_boundary.where(~adv_found, (smallest_adv_distance + largest_nadv_distance)/2)
         return smallest_adv_distance, smallest_adv
 
     δ = torch.zeros_like(inputs)
