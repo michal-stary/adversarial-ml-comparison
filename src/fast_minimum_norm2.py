@@ -146,6 +146,9 @@ def fmn2(model: nn.Module,
                         distance_to_boundary: Tensor,
                         steps: int) -> Tensor:
 
+        # projections not implemented - so suitable only for L2 line search
+        assert norm == 2
+
         smallest_adv = torch.ones_like(inputs, device=device) * torch.inf
         largest_nadv = torch.zeros_like(inputs, device=device)
         ε = torch.ones(batch_size, device=device) * .5
