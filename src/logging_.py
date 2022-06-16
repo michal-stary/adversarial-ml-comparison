@@ -30,7 +30,8 @@ COLORS = {
     "alma_t": "blue",
     "fmn_all": "orange",
     "alma_all": "purple",
-    "fmn2": "pink",
+    "fmn2": "green",
+    "fmn2_all": "cyan",
     
     "0.05": "red",
     "0.03": "green",
@@ -48,7 +49,14 @@ COLORS = {
     "5": "green",
     "10": "blue",
     "100": "brown",
-    "1000": "black"
+    "1000": "black",
+    
+    
+    "True": "black",
+    "False": "red",
+    
+    "norm": "black",
+    "sample": "red"
 }
 
 # CLASS_CMAP = np.array(["tab:blue","tab:orange", "tab:green", "tab:red", "tab:purple", "tab:brown", "tab:pink", "tab:gray", "tab:olive", :"tab:cyan"])
@@ -62,7 +70,9 @@ MARKERS = {
     "pdpgd": "+",
     "ddn": "2",
     "aa": 3,
-    "auto_all": 3
+    "auto_all": 3,
+    "fmn2": "D",
+    "fmn_all": "*"
 }
 
 STYLE = lambda steps: "-" if steps >= 1000 else ":"
@@ -346,11 +356,11 @@ class Logger:
         ax.legend(loc='upper left')
         ax.set_xscale("log")
    
-    def plot_targeted_class(self, run_id, ax=None, attack="fmn", sumdic=None, selected=None, *args, **kwargs):
+    def plot_targeted_class(self, run_id, ax=None, attack="fmn", sumdic=None, selected=None, only_long=True, *args, **kwargs):
 #         if self.value_from_id("attack", run_id) != attack:
 #             return
         # only long runs
-        if self.get_n_steps(run_id) < 1000:
+        if only_long and self.get_n_steps(run_id) < 1000:
             return
         
         # only one plot per ax
@@ -534,7 +544,7 @@ class Logger:
                 
                 run_ids = [*filter( lambda x: "" in x, list(self.where(model=model_name, **OPTIMAL_HYPERS[norm]).keys()))]
 
-                is_slow = lambda x: self.get_n_steps(x) > 999 or self.value_from_id("attack", x) == "auto_all" or self.value_from_id("attack", x) == "aa"
+                is_slow = lambda x: self.get_n_steps(x) > 199 or self.value_from_id("attack", x) == "auto_all" or self.value_from_id("attack", x) == "aa" or self.value_from_id("attack", x) == "fmn_all"
                 quick_ids = [*filter(lambda x: not is_slow(x) or self.value_from_id("attack", x) == "auto_all", run_ids)]
                 slow_ids = [*filter(is_slow, run_ids)]
                 for res,ids in zip([res_s, res_q],[slow_ids, quick_ids]):
@@ -708,7 +718,7 @@ class Logger:
 
     
         for i, run_id in enumerate(dic["run_ids"]):
-            if self.value_from_id("attack",run_id) == "ensemble":
+            if self.value_from_id("attack",run_id) in ["ensemble", "aa"]:
                 continue
                 
             scatter = ax.scatter(x=np.arange(len(argsorted)), y=norms[i][argsorted], c=classes[i], \

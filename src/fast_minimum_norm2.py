@@ -10,7 +10,7 @@ from torch.autograd import grad
 
 from adv_lib.utils.losses import difference_of_logits
 from adv_lib.utils.projections import l1_ball_euclidean_projection
-
+from adv_lib.attacks import fmn
 
 def l0_projection_(δ: Tensor, ε: Tensor) -> Tensor:
     """In-place l0 projection"""
@@ -81,7 +81,10 @@ def fmn2(model: nn.Module,
         starting_points: Optional[Tensor] = None,
         binary_search_steps: int = 10,
         line_search_steps: int = 10,
-        top_explore: int = 3) -> Tensor:
+        top_explore: int = 10,
+        balanced_init: bool = False, 
+        targeted_line: bool = False, 
+        fmn_init: bool = False) -> Tensor:
     """
     Fast Minimum-Norm attack from https://arxiv.org/abs/2102.12827.
 
@@ -137,6 +140,25 @@ def fmn2(model: nn.Module,
     multiplier = 1 if targeted else -1
 
 
+    def binary_search(points):
+#         if starting_points is not None:
+#         is_adv = model(starting_points).argmax(dim=1)
+#         #if not is_adv.all():
+        #    raise ValueError('Starting points are not all adversarial.')
+        lower_bound = torch.zeros(batch_size, device=device)
+        upper_bound = torch.ones(batch_size, device=device)
+        for _ in range(binary_search_steps):
+            ε = (lower_bound + upper_bound) / 2
+            mid_points = mid_point(x0=inputs, x1=points, ε=ε)
+            pred_labels = model(mid_points).argmax(dim=1)
+            is_adv = (pred_labels == labels) if targeted else (pred_labels != labels)
+            lower_bound = torch.where(is_adv, lower_bound, ε)
+            upper_bound = torch.where(is_adv, ε, upper_bound)
+
+        δ = mid_point(x0=inputs, x1=points, ε=ε) - inputs
+        return δ
+    
+    
     ## use linesearch to get the starting points
 
     def boundary_search(model: nn.Module,
@@ -144,51 +166,79 @@ def fmn2(model: nn.Module,
                         c_inds: Tensor,
                         direction: Tensor,
                         distance_to_boundary: Tensor,
-                        steps: int) -> Tensor:
+                        steps: int, 
+                        targeted_line: bool) -> Tensor:
 
         # projections not implemented - so suitable only for L2 line search
-        assert norm == 2
+#         assert norm == 2
 
-        smallest_adv = torch.ones_like(inputs, device=device) * torch.inf
-        largest_nadv = torch.zeros_like(inputs, device=device)
-        ε = torch.ones(batch_size, device=device) * .5
+#         smallest_adv = torch.ones_like(inputs, device=device) * torch.inf
+#         largest_nadv = torch.zeros_like(inputs, device=device)
+#         ε = torch.ones(batch_size, device=device) * 1
 
+        
+#         lower_bound = torch.zeros(batch_size, device=device)
+#         upper_bound = torch.ones(batch_size, device=device)
+        
         smallest_adv_distance = torch.ones_like(distance_to_boundary) * torch.inf
         largest_nadv_distance = torch.zeros_like(distance_to_boundary)
 
         adv_found = torch.ones_like(distance_to_boundary) == 0
 
         for step in range(steps):
-            δ = direction.clone()
-            δ *= batch_view(distance_to_boundary)
+#             # direction * distance for not adv found yet, bs search midpoints delta for the rest
+#             δ = torch.where(adv_found, mid_points - inputs, direction.clone()*batch_view(distance_to_boundary))
+            
+            δ = direction.clone()*batch_view(distance_to_boundary)
+            
+            # cut to box
+            δ.data.add_(inputs).clamp_(min=0, max=1).sub_(inputs)
 
             # get the points
             points = inputs + δ
 
-            # TODO think through if model goes into other adversarial class
             pred = model(points).argmax(dim=1)
-            is_adv = pred == c_inds
+            is_adv = (pred == c_inds) if targeted_line else (pred != c_inds)
 
+            # binary search - stays lower/upper bound for not adv found points, move for the rest
+#             lower_bound = torch.where(~adv_found | is_adv, lower_bound, ε)
+#             upper_bound = torch.where(adv_found & is_adv, ε, upper_bound)
+
+            
             # update points
             is_smaller = distance_to_boundary < smallest_adv_distance
             is_larger  = distance_to_boundary > largest_nadv_distance
-            smallest_adv = smallest_adv.where(batch_view(~is_adv | ~is_smaller), δ)
-            largest_nadv = largest_nadv.where(batch_view(is_adv | ~is_larger), δ)
+            
+            # todo - deal with correct casting
+#             smallest_adv = smallest_adv.where(batch_view(~is_adv | ~is_smaller), δ)
+#             largest_nadv = largest_nadv.where(batch_view(is_adv | ~is_larger), δ)
 
             # update distances
             smallest_adv_distance = smallest_adv_distance.where(~is_adv | ~is_smaller,  distance_to_boundary)
             largest_nadv_distance = largest_nadv_distance.where(is_adv | ~is_larger,  distance_to_boundary)
             adv_found |= is_adv
 
-            # line search
-            distance_to_boundary[~adv_found] *= 2
-
-            # binary search
             # TODO - correct the epsilons
             # TODO - remove useless computation of midpoints for not adv points
             # distance_to_boundary = distance_to_boundary.where(~adv_found, mid_point(x0=largest_nadv, x1=smallest_adv, ε=ε).flatten(1).norm(p=norm, dim=1))
-            distance_to_boundary = distance_to_boundary.where(~adv_found, (smallest_adv_distance + largest_nadv_distance)/2)
-        return smallest_adv_distance, smallest_adv
+            if balanced_init:
+                assert norm == 2
+                distance_to_boundary = distance_to_boundary.where(~adv_found, (smallest_adv_distance + largest_nadv_distance)/2)
+
+
+            # binary search
+#             ε = (lower_bound + upper_bound) / 2
+#             mid_points = mid_point(x0=inputs, x1=starting_points, ε=ε)
+         
+            
+            # line search - increase for those not found yet
+            distance_to_boundary[~adv_found] *= 2
+
+            
+#         δ = mid_point(x0=inputs, x1=starting_points, ε=ε) - inputs
+
+
+        return smallest_adv_distance, adv_found
 
     δ = torch.zeros_like(inputs)
     δ.requires_grad_(True)
@@ -209,7 +259,7 @@ def fmn2(model: nn.Module,
     smallest_advs = []
     print(class_indcs)
     for c_inds in class_indcs.T:
-        print("ah", c_inds)
+#         print("ah", c_inds)
         # logit diff to the c_inds
         labels_infhot = torch.zeros_like(logits).scatter_(1, c_inds.unsqueeze(1), float('inf'))
         logit_diff_func = partial(difference_of_logits, labels=c_inds, labels_infhot=labels_infhot)
@@ -217,40 +267,70 @@ def fmn2(model: nn.Module,
 
         # check if this make sense (maybe should be -1)
         loss = logit_diffs
-        print(loss, "l")
+
         δ_grad = grad(loss.sum(), δ, only_inputs=True, retain_graph=True)[0]
 
         # initial linear approximation of distance to the boundary
-        distance_to_boundary = loss.detach().abs() / δ_grad.flatten(1).norm(p=dual, dim=1).clamp_(min=1e-12)
+        distance_to_boundary = loss.detach().abs() / δ_grad.flatten(1).norm(p=2, dim=1).clamp_(min=1e-12)
 
+#         i_distance_to_boundary = distance_to_boundary.clone()
         # normalize tu unit length
-        δ_grad /= batch_view(δ_grad.flatten(1).norm(p=norm, dim=1))
+        δ_grad /= batch_view(δ_grad.flatten(1).norm(p=2, dim=1))
 
-        print(distance_to_boundary, "init")
-        # do a boundary search in δ_grad direction for each points
-        distance_to_boundary, smallest_adv = boundary_search(model, inputs, c_inds, δ_grad, distance_to_boundary, line_search_steps)
+        if not fmn_init:
+            # do a boundary search in L2 δ_grad direction for each points
+            distance_to_boundary, adv_found = boundary_search(model, inputs, c_inds if targeted_line else labels, δ_grad, distance_to_boundary, 
+                                                              line_search_steps, targeted_line=targeted_line)
 
+            # get samples 
+            line_delta = batch_view(distance_to_boundary) * δ_grad
+            smallest_adv_samples = line_delta.data.add_(inputs).clamp_(min=0, max=1)
+
+        else:
+            smallest_adv_samples = fmn(model, inputs, c_inds, norm=norm, targeted=True, steps=line_search_steps, α_init=α_init, α_final=0.01)
+            adv_found = ~torch.isclose((smallest_adv_samples-inputs).flatten(1).norm(p=norm, dim=1),torch.zeros_like(distance_to_boundary))
+                
+        if balanced_init:
+            # bs already done
+            binary_delta = smallest_adv_samples - inputs
+        else:
+            # do a bs with projections
+            binary_delta = binary_search(smallest_adv_samples)
+
+        # if no adversarial was found, use the original inputs 
+        smallest_adv = binary_delta.where(batch_view(adv_found), torch.zeros_like(inputs))
+
+        # calculate the new distance to boundary, torch inf for not succesful
+        distance_to_boundary = torch.where(adv_found, smallest_adv.flatten(1).norm(p=norm, dim=1), torch.ones_like(adv_found)*torch.inf)
+        
+        
         distance_to_boundaries.append(distance_to_boundary)
         smallest_advs.append(smallest_adv)
-        print(distance_to_boundary, "refined")
 
+        summary = False
+        if summary:
+            print("summary")
+            new_loss = logit_diff_func(logits=model(inputs + smallest_adv)).detach()
+            for i in range(len(c_inds)):
+                print(c_inds[i].item(), loss[i].detach().item(), new_loss[i].item(), i_distance_to_boundary[i].item(), distance_to_boundary[i].item())
+    
     distance_to_boundaries = torch.stack(distance_to_boundaries).T
     smallest_advs = torch.swapaxes(torch.stack(smallest_advs), 0, 1)
 
     best_indc = torch.argmin(distance_to_boundaries, dim=1, keepdim=True)
-    best_classes = torch.gather(class_indcs, 1, best_indc)
+#     best_classes = torch.gather(class_indcs, 1, best_indc)
     best_distances = torch.gather(distance_to_boundaries, 1, best_indc)
-
-    # HACK TO REUSE THE CODE FOR ADV INIT in origFMN
-    # add either the points found by search or nothing is search was not succesful in any class
-    starting_points = inputs + smallest_advs[torch.arange(batch_size), best_indc.squeeze(), :].where(batch_view(best_distances) != torch.inf, torch.zeros_like(inputs))
-    ε = torch.ones(batch_size, device=device)
-    binary_search_steps = 0
-    # /HACK END
-
+    
     # see what class has the real closest boundary
-    print(best_indc, best_distances, best_classes)
+    for t in [*zip(best_indc.tolist(), best_distances.tolist())]:
+        print(t)
 
+    
+#     starting_points = 
+        
+        
+    # avoid undefined behaviour
+    assert (starting_points is None) ^ (top_explore is None)
 
     # If starting_points is provided, search for the boundary
     if starting_points is not None:
@@ -268,6 +348,9 @@ def fmn2(model: nn.Module,
             upper_bound = torch.where(is_adv, ε, upper_bound)
 
         δ = mid_point(x0=inputs, x1=starting_points, ε=ε) - inputs
+    elif top_explore is not None:
+        # start with found delta or initial sample if no adversarial found
+        δ = smallest_advs[torch.arange(batch_size), best_indc.squeeze(), :].where(batch_view(best_distances) != torch.inf, torch.zeros_like(inputs))
     else:
         δ = torch.zeros_like(inputs)
     δ.requires_grad_(True)
