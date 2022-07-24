@@ -195,8 +195,14 @@ class Sweeper:
                     targets = torch.ones_like(labels)*hyperparams.pop("target")
                     
                     results = attack_f(tracked_model, images, targets, **norm_dict, **hyperparams)
-                else:    
-                    results = attack_f(tracked_model, images, labels, **norm_dict, **hyperparams)
+                else:
+                    if "track_grad_size" in hyperparams and hyperparams["track_grad_size"]:
+                        assert attack_f == fmn2
+                        results, x0_grad_size, xinit_grad_size = attack_f(tracked_model, images, labels, **norm_dict, **hyperparams)
+                        self.logger.concat_batch_log("x0_grad_size", x0_grad_size)
+                        self.logger.concat_batch_log("xinit_grad_size", xinit_grad_size)
+                    else:
+                        results = attack_f(tracked_model, images, labels, **norm_dict, **hyperparams)
                 
             self.logger.concat_batch_log("results", [results])
             

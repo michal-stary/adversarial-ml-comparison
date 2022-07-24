@@ -10,6 +10,7 @@ from torch.autograd import grad
 
 from adv_lib.utils.losses import difference_of_logits
 from adv_lib.utils.projections import l1_ball_euclidean_projection
+from adv_lib.attacks.auto_pgd import l1_projection as croce_l1_projection
 from adv_lib.attacks import fmn
 
 def l0_projection_(δ: Tensor, ε: Tensor) -> Tensor:
@@ -56,6 +57,60 @@ def l1_mid_points(x0: Tensor, x1: Tensor, ε: Tensor) -> Tensor:
     mid_points.mul_(mask)
     return x0 + mid_points.reshape(x0.shape)
 
+def l1_mid_points_(x0: Tensor, x1: Tensor, ε: Tensor) -> Tensor:
+    δ = (x1 - x0).flatten(1)
+    
+    # move from 0-1 eps range to 0-||delta||_1 range 
+    eps =ε* δ.norm(p=1, dim=1)
+#     print("initial eps", ε)
+    
+    δ_abs = δ.abs()
+    argsorted = torch.argsort(δ_abs, dim=1, descending=True)
+    delta = torch.zeros_like(δ)
+    
+    
+#     print(δ)
+    # try all coordinates in the worst case, but no more
+    for i in range(len(δ[0])):
+        free = (eps - delta.abs().sum(dim=1)).clamp(min=0)
+        
+        if torch.isclose(free, torch.zeros_like(free)).all():
+            break
+            
+#         print(delta, free)
+        vector_of_x0vals_for_ith_largest_grads = x0.flatten(1)[torch.arange(len(ε)), argsorted[:, i]]
+        limit_up = 1 - vector_of_x0vals_for_ith_largest_grads
+        limit_down = vector_of_x0vals_for_ith_largest_grads
+        
+        
+#         print(δ.shape)
+        is_positive = δ[torch.arange(len(ε)), argsorted[:, i]].sign() == 1
+        
+        adder = torch.where(is_positive,torch.minimum(free, limit_up), torch.maximum(-free, -limit_down))
+#         print("aa", adder)
+        delta[torch.arange(len(ε)), argsorted[:, i]] += adder
+#         print(delta)
+#     i = 0 
+    
+#     while i < len() (delta.sum(dim=1) < ε).any():
+#     print(delta.abs().sum(dim=1))  
+    return x0 + delta.view_as(x0)
+    
+    
+    
+    
+    
+    
+    
+#     threshold = (1 - ε).unsqueeze(1)
+#     δ = (x1 - x0).flatten(1)
+#     δ_abs = δ.abs()
+#     mask = δ_abs > threshold
+#     mid_points = δ_abs.sub_(threshold).copysign_(δ)
+#     mid_points.mul_(mask)
+#     return x0 + mid_points.reshape(x0.shape)
+
+
 
 def l2_mid_points(x0: Tensor, x1: Tensor, ε: Tensor) -> Tensor:
     ε = ε.unsqueeze(1)
@@ -66,6 +121,12 @@ def linf_mid_points(x0: Tensor, x1: Tensor, ε: Tensor) -> Tensor:
     ε = ε.unsqueeze(1)
     δ = (x1 - x0).flatten(1)
     return x0 + torch.maximum(torch.minimum(δ, ε, out=δ), -ε, out=δ).view_as(x0)
+
+def linf_mid_points_(x0: Tensor, x1: Tensor, ε: Tensor) -> Tensor:
+    ε = ε.unsqueeze(1)
+    δ = (x1 - x0).flatten(1)
+    return x0 + (δ.sign()*eps).view_as(x0)
+
 
 
 def fmn2(model: nn.Module,
@@ -84,7 +145,11 @@ def fmn2(model: nn.Module,
         top_explore: int = 10,
         balanced_init: bool = False, 
         targeted_line: bool = False, 
-        fmn_init: bool = False) -> Tensor:
+        fmn_init: bool = True,
+        ifmn_α_init: Optional[float] = None,
+        track_grad_size: bool = False,
+        steepest_line: bool = False,
+        croce_l1: bool = False) -> Tensor:
     """
     Fast Minimum-Norm attack from https://arxiv.org/abs/2102.12827.
 
@@ -125,12 +190,24 @@ def fmn2(model: nn.Module,
         Modified inputs to be adversarial to the model.
 
     """
+    
+        
     _dual_projection_mid_points = {
         0: (None, l0_projection_, l0_mid_points),
         1: (float('inf'), l1_projection_, l1_mid_points),
         2: (2, l2_projection_, l2_mid_points),
         float('inf'): (1, linf_projection_, linf_mid_points),
     }
+    
+    if steepest_line:
+        _dual_projection_mid_points = {
+        0: (None, l0_projection_, l0_mid_points),
+        1: (float('inf'), l1_projection_, l1_mid_points_),
+        2: (2, l2_projection_, l2_mid_points),
+        float('inf'): (1, linf_projection_, linf_mid_points_),
+    }
+    
+    
     if inputs.min() < 0 or inputs.max() > 1: raise ValueError('Input values should be in the [0, 1] range.')
     device = inputs.device
     batch_size = len(inputs)
@@ -140,6 +217,11 @@ def fmn2(model: nn.Module,
     multiplier = 1 if targeted else -1
 
 
+    
+    if track_grad_size:
+        x0_g_tracker = []
+        xinit_g_tracker = []
+    
     def binary_search(points):
 #         if starting_points is not None:
 #         is_adv = model(starting_points).argmax(dim=1)
@@ -257,7 +339,7 @@ def fmn2(model: nn.Module,
 
     distance_to_boundaries = []
     smallest_advs = []
-    print(class_indcs)
+#     print(class_indcs)
     for c_inds in class_indcs.T:
 #         print("ah", c_inds)
         # logit diff to the c_inds
@@ -269,7 +351,10 @@ def fmn2(model: nn.Module,
         loss = logit_diffs
 
         δ_grad = grad(loss.sum(), δ, only_inputs=True, retain_graph=True)[0]
-
+        
+        if track_grad_size:
+            x0_g_tracker.append(δ_grad.flatten(1).norm(p=norm, dim=1))
+        
         # initial linear approximation of distance to the boundary
         distance_to_boundary = loss.detach().abs() / δ_grad.flatten(1).norm(p=2, dim=1).clamp_(min=1e-12)
 
@@ -287,7 +372,8 @@ def fmn2(model: nn.Module,
             smallest_adv_samples = line_delta.data.add_(inputs).clamp_(min=0, max=1)
 
         else:
-            smallest_adv_samples = fmn(model, inputs, c_inds, norm=norm, targeted=True, steps=line_search_steps, α_init=α_init, α_final=0.01)
+            smallest_adv_samples = fmn(model, inputs, c_inds, norm=norm, targeted=True, steps=line_search_steps, 
+                                       α_init=α_init if ifmn_α_init is None else ifmn_α_init, α_final=0.01)
             adv_found = ~torch.isclose((smallest_adv_samples-inputs).flatten(1).norm(p=norm, dim=1),torch.zeros_like(distance_to_boundary))
                 
         if balanced_init:
@@ -316,11 +402,14 @@ def fmn2(model: nn.Module,
     
     distance_to_boundaries = torch.stack(distance_to_boundaries).T
     smallest_advs = torch.swapaxes(torch.stack(smallest_advs), 0, 1)
-
+    
+#     print(distance_to_boundaries)
+#     print(smallest_advs[1,0].sum())
     best_indc = torch.argmin(distance_to_boundaries, dim=1, keepdim=True)
 #     best_classes = torch.gather(class_indcs, 1, best_indc)
     best_distances = torch.gather(distance_to_boundaries, 1, best_indc)
     
+#     print(best_indc, best_distances)
     # see what class has the real closest boundary
     for t in [*zip(best_indc.tolist(), best_distances.tolist())]:
         print(t)
@@ -349,8 +438,17 @@ def fmn2(model: nn.Module,
 
         δ = mid_point(x0=inputs, x1=starting_points, ε=ε) - inputs
     elif top_explore is not None:
-        # start with found delta or initial sample if no adversarial found
-        δ = smallest_advs[torch.arange(batch_size), best_indc.squeeze(), :].where(batch_view(best_distances) != torch.inf, torch.zeros_like(inputs))
+        # start with found delta or initial sample if no adversarial found or the original is already adversary
+        orig_adv = logits.argmax(dim=1) != labels
+        no_adv = best_distances == torch.inf
+#         print(orig_adv.shape)
+#         print(no_adv.shape)
+#         print(batch_view((no_adv | orig_adv)))
+#         print(smallest_advs)
+#         print(smallest_advs.sum())
+        δ = torch.where(batch_view(no_adv | orig_adv.unsqueeze(1)), torch.zeros_like(inputs), smallest_advs[torch.arange(batch_size), best_indc.squeeze(), :])
+#         print(δ)
+#         print(δ.sum())
     else:
         δ = torch.zeros_like(inputs)
     δ.requires_grad_(True)
@@ -360,12 +458,21 @@ def fmn2(model: nn.Module,
     else:
         ε = torch.full((batch_size,), float('inf'), device=device)
 
+    
+    
+    
+    ## try multiple step sizes
+    # later
+    
+    
+    
+    
     # Init trackers
     worst_norm = torch.maximum(inputs, 1 - inputs).flatten(1).norm(p=norm, dim=1)
     best_norm = worst_norm.clone()
     best_adv = inputs.clone()
     adv_found = torch.zeros(batch_size, dtype=torch.bool, device=device)
-
+    
 
     ## Exploit
     for i in range(steps):
@@ -385,7 +492,10 @@ def fmn2(model: nn.Module,
         logit_diffs = logit_diff_func(logits=logits)
         loss = multiplier * logit_diffs
         δ_grad = grad(loss.sum(), δ, only_inputs=True)[0]
-
+        
+        if track_grad_size:
+            xinit_g_tracker.append(δ_grad.flatten(1).norm(p=norm, dim=1))
+            
         is_adv = (pred_labels == labels) if targeted else (pred_labels != labels)
         is_smaller = δ_norm < best_norm
         is_both = is_adv & is_smaller
@@ -413,11 +523,15 @@ def fmn2(model: nn.Module,
 
         # gradient ascent step
         δ.data.add_(δ_grad, alpha=α)
-
-        # project in place
-        projection(δ=δ.data, ε=ε)
+        
+        if norm == 1 and croce_l1:
+             δ.data += croce_l1_projection(inputs, δ, ε)
+        else:
+            # project in place
+            projection(δ=δ.data, ε=ε)
 
         # clamp
         δ.data.add_(inputs).clamp_(min=0, max=1).sub_(inputs)
-
+    if track_grad_size:
+        return best_adv, x0_g_tracker, xinit_g_tracker
     return best_adv

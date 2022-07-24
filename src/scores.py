@@ -10,11 +10,12 @@ THRESHOLDS = {
 SCORES = {
     "L1":[{"Maini2020MultipleAVG": .603, ## L1 apgd paper (AA, APGD)
             "Maini2020MultipleMSD": .582, ## L1 apgd paper (WC)
-            "Xiao2020Enhancing": .224, ## L1 apgd paper (AA)
             "Augustin2020Adversarial_34_10_extra": .507, ## L1 apgd paper (AA)
-            "Engstrom2019Robustness_linf": .16, ## L1 apgd paper (AA)
             "Engstrom2019Robustness_l2": .442,  ## L1 apgd paper (AA)
-            "Rice2020Overfitting": .429 ## L1 apgd paper (AA, APGD)
+            "Rice2020Overfitting": .429, ## L1 apgd paper (AA, APGD)
+           "Xiao2020Enhancing": .224, ## L1 apgd paper (AA)
+            "Engstrom2019Robustness_linf": .16 ## L1 apgd paper (AA)
+
            },
         {"Maini2020MultipleAVG": .468, ## L1 apgd paper (AA, APGD)
             "Maini2020MultipleMSD": .465, ## L1 apgd paper (AA, APGD)

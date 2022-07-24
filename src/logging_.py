@@ -32,6 +32,8 @@ COLORS = {
     "alma_all": "purple",
     "fmn2": "green",
     "fmn2_all": "cyan",
+    "fmn2_allp": "black",
+    "fmn2_allf": "slategray",
     
     "0.05": "red",
     "0.03": "green",
@@ -132,7 +134,7 @@ class Logger:
         new = dict()
         
         for key in self.dict:
-            if not all((param not in key or f"{param}-{kwargs[param]}" in key for param in kwargs)):
+            if not all((f"-{param}-" not in key or self.value_from_id(param, key) == str(kwargs[param]) for param in kwargs)):
                 continue
             new[key] = self.dict[key]
         return new
@@ -448,7 +450,8 @@ class Logger:
                   compare_on="attack", sharex="row", max_count_x=10, **kwargs):
         dic = self.where(**where_settings)
         comp = list(dic.keys())
-        
+#         print(where_settings)
+#         print(dic)
         unique_y = list(sorted(set([self.value_from_id(y_axis, c) for c in comp])))
         unique_x_per_y = [list(sorted(set([self.value_from_id(x_axis, c) for c in filter(lambda x: y in x, dic.keys())]))) for y in unique_y]
         
