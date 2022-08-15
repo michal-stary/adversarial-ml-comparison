@@ -1,0 +1,33 @@
+[    
+
+    {
+    "dataset": ["CIFAR10"],
+    "attack": ["aa"],
+    "model":  ["Gowal2021Improving_R18_ddpm_100m", "Rade2021Helper_R18_extra", "Engstrom2019Robustness_linf", 
+               "Rebuffi2021Fixing_70_16_cutmix_extra_linf", "Gowal2020Uncovering_70_16_extra", "Gowal2021Improving_70_16_ddpm_100m", "Kang2021Stable"],
+    "norm": ["Linf"],
+    "loss_f": ["DL"],
+    "eps": [0.03137254901, 0.03921568627, 0.04705882352]
+  },
+    {
+    "dataset": ["CIFAR10"],
+    "attack": ["fmn2"],
+    "model":  ["Gowal2021Improving_R18_ddpm_100m", "Rade2021Helper_R18_extra", "Engstrom2019Robustness_linf", 
+               "Rebuffi2021Fixing_70_16_cutmix_extra_linf", "Gowal2020Uncovering_70_16_extra", "Gowal2021Improving_70_16_ddpm_100m",
+              "Kang2021Stable"],
+    "norm": ["Linf"],
+    "steps": [1],
+    "loss_f": ["DL"],
+    "α_init": [1,10,100,1000],
+    "α_final": [0.0001],
+    "top_explore": [10],
+    "steepest_line": [false],
+    "balanced_init": [false],
+    "fmn_init": [true],
+    "ifmn_α_init": [10],
+    "track_grad_size": [true]
+    
+  }
+]
+
+

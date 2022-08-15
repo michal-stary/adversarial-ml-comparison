@@ -1,0 +1,24 @@
+[  
+    {
+    "dataset": ["CIFAR10"],
+    "attack": ["fmn2"],
+    "model":  ["Rade2021Helper_R18_ddpm", "Rebuffi2021Fixing_R18_cutmix_ddpm", "Engstrom2019Robustness_l2", 
+               "Rebuffi2021Fixing_70_16_cutmix_extra_l2", "Gowal2020Uncovering_extra", "Rebuffi2021Fixing_70_16_cutmix_ddpm"],
+    "norm": ["L2"],
+    "steps": [1],
+    "loss_f": ["DL"],
+    "α_init": [1,10,100,1000],
+    "α_final": [0.0001],
+    "top_explore": [10],
+    "steepest_line": [false],
+    "balanced_init": [false],
+    "fmn_init": [true],
+    "ifmn_α_init": [10],
+    "track_grad_size": [true]
+    
+  },
+    
+
+]
+
+

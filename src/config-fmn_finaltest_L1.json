@@ -1,0 +1,32 @@
+[
+    {  
+    "dataset": ["CIFAR10"],
+    "attack": ["fmn2"],
+    "model":  ["Engstrom2019Robustness_l2", "Engstrom2019Robustness_linf", "Augustin2020Adversarial_34_10_extra", 
+               "Rice2020Overfitting", "Maini2020MultipleMSD", "Maini2020MultipleAVG", "Xiao2020Enhancing"],
+    "norm": ["L1"],
+    "loss_f": ["DL"],
+    "steps": [117],
+    "α_init": [1,3,5,8,12,15,20],
+    "α_final": [0.0001],
+    "top_explore": [10],
+    "croce_l1": [true],
+    "steepest_line": [false],
+    "fmn_init": [true],
+    "ifmn_α_init": [5],
+    "track_grad_size": [false]
+    },
+    
+    {
+    "dataset": ["CIFAR10"],
+    "attack": ["aa"],
+    "model":  ["Engstrom2019Robustness_linf", "Engstrom2019Robustness_l2", "Augustin2020Adversarial_34_10_extra", 
+               "Rice2020Overfitting", "Xiao2020Enhancing",
+              "Maini2020MultipleMSD", "Maini2020MultipleAVG"],
+    "norm": ["L1"],
+    "loss_f": ["DL"],
+    "eps": [4,8,12,16,20,30]
+  } 
+]
+
+
