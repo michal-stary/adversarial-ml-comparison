@@ -21,7 +21,9 @@ ROBUSTBENCH_MODELS = {
     'Rebuffi2021Fixing_R18_cutmix_ddpm': ('L2', 'Rebuffi2021Fixing_R18_cutmix_ddpm',),
     'Gowal2020Uncovering_extra': ('L2', 'Gowal2020Uncovering_extra'),
     'Rebuffi2021Fixing_70_16_cutmix_extra_l2': ('L2', 'Rebuffi2021Fixing_70_16_cutmix_extra'),
-    'Rebuffi2021Fixing_70_16_cutmix_ddpm': ('L2', 'Rebuffi2021Fixing_70_16_cutmix_ddpm')
+    'Rebuffi2021Fixing_70_16_cutmix_ddpm': ('L2', 'Rebuffi2021Fixing_70_16_cutmix_ddpm'),
+    'Rebuffi2021Fixing_28_10_cutmix_ddpm': ('L2', 'Rebuffi2021Fixing_28_10_cutmix_ddpm'),
+    'Sehwag2021Proxy': ('L2', 'Sehwag2021Proxy')
 }
 
 EXTERNAL_MODELS = {

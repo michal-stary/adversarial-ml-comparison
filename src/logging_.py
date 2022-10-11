@@ -34,6 +34,8 @@ COLORS = {
     "fmn2_all": "cyan",
     "fmn2_allp": "black",
     "fmn2_allf": "slategray",
+    "autofmn": "green",
+    "allaa" : "pink",
     
     "0.05": "red",
     "0.03": "green",
@@ -501,6 +503,11 @@ class Logger:
         longest_ind = n_steps.index(max(n_steps))
         
         dic = deepcopy(self.dict[run_ids[longest_ind]])
+        dic["origin"] = np.repeat(run_ids[0], len(self.dict[run_ids[longest_ind]]["results"]))
+        dic["class"] = min_norms_pred(self.dict[run_ids[longest_ind]]["norm_progress"],
+                                      self.dict[run_ids[longest_ind]]["acc_progress"],
+                                      self.dict[run_ids[longest_ind]]["pred_progress"])[1].argmax(axis=-1)
+        results = []
         for run_id in run_ids:
             clean_acc = dic["acc_progress"][0]
             max_ind = len(self.dict[run_id]["norm_progress"])-1
@@ -510,8 +517,21 @@ class Logger:
             assert (self.dict[run_ids[0]]["labels_progress"] == self.dict[run_id]["labels_progress"]).all()
 #             assert (self.dict[run_ids[0]]["pred_progress"] == self.dict[run_id]["pred_progress"]).all()
 #             assert (self.dict[run_ids[0]]["acc_progress"][0] == self.dict[run_id]["acc_progress"][0]).all()
+        
+            current_min_norms, current_min_pred = min_norms_pred(dic["norm_progress"], 
+                                                                 dic["acc_progress"], 
+                                                                 dic["pred_progress"])
+        
+            new_min_norms, new_min_pred = min_norms_pred(self.dict[run_id]["norm_progress"], 
+                                                         self.dict[run_id]["acc_progress"], 
+                                                         self.dict[run_id]["pred_progress"])
             
-
+            dic["origin"] = np.where(current_min_norms < new_min_norms, dic["origin"], np.repeat(run_id,len(dic["origin"])))
+            
+            dic["class"] = np.where(current_min_norms < new_min_norms, 
+                                    dic["class"], 
+                                    new_min_pred.argmax(axis=-1))
+            
             if not (clean_acc == self.dict[run_id]["acc_progress"][0]).all():
                 raise RuntimeError(run_id)
                         
@@ -521,6 +541,16 @@ class Logger:
             
                 dic["norm_progress"][step] = np.amin(np.stack([step_norm1, step_norm2]), axis=0)
                 dic["acc_progress"][step] = np.amin(np.stack([dic["acc_progress"][step], self.dict[run_id]["acc_progress"][min(step, max_ind)]]), axis=0)
+            
+            results.append(self.dict[run_id]["results"])
+            
+        # merge results
+        # print(np.array(results).shape, .reshape(-1, 1, 1,1, 1, 1).shape)
+        # dic["results"] = np.array(results)[np.array([run_ids.index(x) for x in dic["origin"]])]
+        indices = np.array([run_ids.index(x) for x in dic["origin"]])
+        dic["results"] = np.array(results)[indices, 0, range(len(indices)), ...]
+
+        #np.take_along_axis(np.array(results), np.array([run_ids.index(x) for x in dic["origin"]]).reshape(-1, 1, 1,1, 1, 1), axis=2)
         
         self.dict[name] = dic
         return dic

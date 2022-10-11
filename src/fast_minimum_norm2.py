@@ -334,7 +334,7 @@ def fmn2(model: nn.Module,
 
     # get top k classes indices (except the correct one)
     logits_ = logits.clone()
-    logits_[torch.arange(batch_size), labels] = -torch.inf
+    logits_[torch.arange(batch_size), labels] = -float("inf")
     class_indcs = torch.argsort(logits_, dim=1, descending=True)[:, :top_explore]
 
     distance_to_boundaries = []
@@ -387,7 +387,7 @@ def fmn2(model: nn.Module,
         smallest_adv = binary_delta.where(batch_view(adv_found), torch.zeros_like(inputs))
 
         # calculate the new distance to boundary, torch inf for not succesful
-        distance_to_boundary = torch.where(adv_found, smallest_adv.flatten(1).norm(p=norm, dim=1), torch.ones_like(adv_found)*torch.inf)
+        distance_to_boundary = torch.where(adv_found, smallest_adv.flatten(1).norm(p=norm, dim=1), torch.ones_like(adv_found)*float("inf"))
         
         
         distance_to_boundaries.append(distance_to_boundary)
@@ -440,7 +440,7 @@ def fmn2(model: nn.Module,
     elif top_explore is not None:
         # start with found delta or initial sample if no adversarial found or the original is already adversary
         orig_adv = logits.argmax(dim=1) != labels
-        no_adv = best_distances == torch.inf
+        no_adv = best_distances == float('inf')
 #         print(orig_adv.shape)
 #         print(no_adv.shape)
 #         print(batch_view((no_adv | orig_adv)))

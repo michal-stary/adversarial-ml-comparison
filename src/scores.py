@@ -29,10 +29,12 @@ SCORES = {
     "L2": [{"Rebuffi2021Fixing_70_16_cutmix_extra_l2": .8232, ## RB
             "Gowal2020Uncovering_extra": .8053, ## RB
             "Rebuffi2021Fixing_70_16_cutmix_ddpm": .8042, ## RB
-            "Rebuffi2021Fixing_R18_cutmix_ddpm": .7586, ## RB
+            "Augustin2020Adversarial_34_10_extra": .7879, ## RB
+            "Sehwag2021Proxy": .7724,## RB
             "Rade2021Helper_R18_ddpm": .7615, ## RB
+            "Rebuffi2021Fixing_R18_cutmix_ddpm": .7586, ## RB
             "Engstrom2019Robustness_l2": .6924 ##RB
-            }],
+             }],
     
     "Linf":[{"Rebuffi2021Fixing_70_16_cutmix_extra_linf": .6656, ## RB
             "Gowal2021Improving_70_16_ddpm_100m": .6610, ## RB
