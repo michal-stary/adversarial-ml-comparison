@@ -473,10 +473,13 @@ class Logger:
         
         fig, axs = plt.subplots(len(unique_y), max(map(len, unique_x_per_y)), sharey='none', sharex=sharex, **kwargs)
         
+        
         # at least 2D
         if len(unique_y) == 1:
             axs = [axs]
-        
+        if max(map(len, unique_x_per_y)) == 1:
+            axs = [axs]
+            
         for c in comp:
             x_val = self.value_from_id(x_axis, c)
             y_val = self.value_from_id(y_axis, c)
@@ -497,7 +500,10 @@ class Logger:
     def merge(self, name, run_ids, strategy="best"):
         if strategy != "best":
             raise NotImplementedError
-            
+        
+        if not run_ids:
+            return None
+        
         # get longest run
         n_steps = [self.get_n_steps(run_id) for run_id in run_ids]
         longest_ind = n_steps.index(max(n_steps))
