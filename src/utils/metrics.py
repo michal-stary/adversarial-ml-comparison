@@ -34,8 +34,11 @@ def min_norms_pred(step_norms, step_accs, step_preds):
     for step in range(len(step_norms)):
         stacked_norms = np.stack([running_min_norms, adversify(step_norms[step], step_accs[step], clean_acc)])
         stacked_preds = np.stack([running_min_preds, step_preds[step]])
-        min_indc = np.argmin(stacked_norms, axis=0, keepdims=True)
-#         print(min_indc)
+        min_indc = np.argmin(stacked_norms, axis=0)
+        # print(min_indc.shape)
+        # print(np.argmin(stacked_norms, axis=0, keepdims=True).shape)
+        min_indc = min_indc.reshape(1, *min_indc.shape)
+        # print(min_indc)
         
 #         print(stacked_preds.shape, stacked_norms.shape)
         running_min_norms = np.take_along_axis(stacked_norms, min_indc, axis=0)[0]
